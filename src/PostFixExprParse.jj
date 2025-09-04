@@ -1,0 +1,69 @@
+options {
+    //Hier können noch Optionen stehen z.B. static
+}
+
+PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
+public class PostFixExprParse {
+    public static void main (String args []) {
+        PostFixExprParse parser = new PostFixExprParse(System.in);
+        try {
+            parser.ausdruck(); //Aufruf mit Startsymbol
+            System.out.println("Ausdruck syntaktisch ok!");
+        } catch (ParseException e) {
+            System.err.println(e);
+        }
+    }
+}
+PARSER_END(PostFixExprParse)
+
+SKIP: {
+      " " //Blank
+      | "\r" //Wagenrücklauf (return)
+      | "\n" //Neue Zeile (new line)
+      | "\t" //Tabulator
+}
+
+TOKEN: {
+  < NUMBER : "0" | (["1"-"9"] (["0"-"9"])*) >
+| < PLUS   : "+" >
+| < MINUS  : "-" >
+| < MULT   : "*" >
+| < DIV    : "/" >
+| < KLAMMERAUF : "(" >
+| < KLAMMERZU : ")" >
+}
+
+void ausdruck():{ String s; }
+{
+  s = summe() <EOF>
+  { System.out.println(s); }
+}
+
+String summe() : { String left, right; Token op; }
+{
+  left = produkt()
+  (
+    ( op = <PLUS>  | op = <MINUS> )
+    right = produkt()
+    { left = left + " " + right + " " + op.image; }
+  )*
+  { return left; }
+}
+
+String produkt() : { String left, right; Token op; }
+{
+  left = term()
+  (
+    ( op = <MULT> | op = <DIV> )
+    right = term()
+    { left = left + " " + right + " " + op.image; }
+  )*
+  { return left; }
+}
+
+String term() : { Token n; String inside; }
+{
+    n = <NUMBER>
+    { return n.image; }
+  | <KLAMMERAUF> inside = summe() <KLAMMERZU> { return inside; }
+}
