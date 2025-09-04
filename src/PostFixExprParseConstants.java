@@ -9,19 +9,31 @@ public interface PostFixExprParseConstants {
   /** End of File. */
   int EOF = 0;
   /** RegularExpression Id. */
-  int NUMBER = 5;
+  int INT = 5;
   /** RegularExpression Id. */
-  int PLUS = 6;
+  int FINAL = 6;
   /** RegularExpression Id. */
-  int MINUS = 7;
+  int IDENT = 7;
   /** RegularExpression Id. */
-  int MULT = 8;
+  int NUMBER = 8;
   /** RegularExpression Id. */
-  int DIV = 9;
+  int PLUS = 9;
   /** RegularExpression Id. */
-  int KLAMMERAUF = 10;
+  int MINUS = 10;
   /** RegularExpression Id. */
-  int KLAMMERZU = 11;
+  int MULT = 11;
+  /** RegularExpression Id. */
+  int DIV = 12;
+  /** RegularExpression Id. */
+  int KLAMMERAUF = 13;
+  /** RegularExpression Id. */
+  int KLAMMERZU = 14;
+  /** RegularExpression Id. */
+  int EQUAL = 15;
+  /** RegularExpression Id. */
+  int COMMA = 16;
+  /** RegularExpression Id. */
+  int SEMICOLON = 17;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -33,6 +45,9 @@ public interface PostFixExprParseConstants {
     "\"\\r\"",
     "\"\\n\"",
     "\"\\t\"",
+    "\"int\"",
+    "\"final\"",
+    "<IDENT>",
     "<NUMBER>",
     "\"+\"",
     "\"-\"",
@@ -40,6 +55,9 @@ public interface PostFixExprParseConstants {
     "\"/\"",
     "\"(\"",
     "\")\"",
+    "\"=\"",
+    "\",\"",
+    "\";\"",
   };
 
 }

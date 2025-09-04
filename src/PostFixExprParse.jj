@@ -1,13 +1,15 @@
 options {
     //Hier können noch Optionen stehen z.B. static
+    STATIC = false;
 }
 
 PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
 public class PostFixExprParse {
-    public static void main (String args []) {
+    private SymbolTable st = new SymbolTable();
+    public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
         try {
-            parser.ausdruck(); //Aufruf mit Startsymbol
+            parser.program(); //Aufruf mit Startsymbol
             System.out.println("Ausdruck syntaktisch ok!");
         } catch (ParseException e) {
             System.err.println(e);
@@ -24,16 +26,42 @@ SKIP: {
 }
 
 TOKEN: {
-  < NUMBER : "0" | (["1"-"9"] (["0"-"9"])*) >
-| < PLUS   : "+" >
-| < MINUS  : "-" >
-| < MULT   : "*" >
-| < DIV    : "/" >
-| < KLAMMERAUF : "(" >
-| < KLAMMERZU : ")" >
+    < INT : "int" > //Schlüsselwort
+    | < FINAL : "final" > //& später "int" einsetzen
+    | < IDENT : ["a"-"z"] (["a"-"z","A"-"Z","0"-"9"])* >
+    | < NUMBER : "0" | (["1"-"9"] (["0"-"9"])*) >
+    | < PLUS   : "+" >
+    | < MINUS  : "-" >
+    | < MULT   : "*" >
+    | < DIV    : "/" >
+    | < KLAMMERAUF : "(" >
+    | < KLAMMERZU : ")" >
+    | < EQUAL : "=" >
+    | < COMMA : "," >
+    | < SEMICOLON : ";" >
 }
 
-void ausdruck():{ String s; }
+void program(): {} {
+    (constDecl())?
+    statement()
+}
+
+void constDecl(): {} {
+    <FINAL>
+    <INT>
+    constZuw()
+    ( <COMMA> constZuw() )*
+    <SEMICOLON>
+}
+
+void constZuw(): { Token ident; Token number; } {
+    ident = <IDENT>
+    <EQUAL>
+    number = <NUMBER>
+    { st.addConstant(ident.image, Integer.parseInt(number.image)); }
+}
+
+void statement():{ String s; }
 {
   s = summe() <EOF>
   { System.out.println(s); }
@@ -61,9 +89,9 @@ String produkt() : { String left, right; Token op; }
   { return left; }
 }
 
-String term() : { Token n; String inside; }
+String term() : { Token n, ident; String inside; }
 {
-    n = <NUMBER>
-    { return n.image; }
-  | <KLAMMERAUF> inside = summe() <KLAMMERZU> { return inside; }
+    n = <NUMBER> { return n.image; }
+    | ident = <IDENT> { return st.getSymbol(ident.image).toString(); }
+    | <KLAMMERAUF> inside = summe() <KLAMMERZU> { return inside; }
 }
