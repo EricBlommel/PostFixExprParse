@@ -13,27 +13,41 @@ public interface PostFixExprParseConstants {
   /** RegularExpression Id. */
   int FINAL = 6;
   /** RegularExpression Id. */
-  int IDENT = 7;
+  int PRINT = 7;
   /** RegularExpression Id. */
-  int NUMBER = 8;
+  int IF = 8;
   /** RegularExpression Id. */
-  int PLUS = 9;
+  int ELSE = 9;
   /** RegularExpression Id. */
-  int MINUS = 10;
+  int WHILE = 10;
   /** RegularExpression Id. */
-  int MULT = 11;
+  int IDENT = 11;
   /** RegularExpression Id. */
-  int DIV = 12;
+  int NUMBER = 12;
   /** RegularExpression Id. */
-  int KLAMMERAUF = 13;
+  int PLUS = 13;
   /** RegularExpression Id. */
-  int KLAMMERZU = 14;
+  int MINUS = 14;
   /** RegularExpression Id. */
-  int EQUAL = 15;
+  int MULT = 15;
   /** RegularExpression Id. */
-  int COMMA = 16;
+  int DIV = 16;
   /** RegularExpression Id. */
-  int SEMICOLON = 17;
+  int KLAMMERAUF = 17;
+  /** RegularExpression Id. */
+  int KLAMMERZU = 18;
+  /** RegularExpression Id. */
+  int CURLYAUF = 19;
+  /** RegularExpression Id. */
+  int CURLYZU = 20;
+  /** RegularExpression Id. */
+  int EQUAL = 21;
+  /** RegularExpression Id. */
+  int COMMA = 22;
+  /** RegularExpression Id. */
+  int SEMICOLON = 23;
+  /** RegularExpression Id. */
+  int COMPOP = 24;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -47,6 +61,10 @@ public interface PostFixExprParseConstants {
     "\"\\t\"",
     "\"int\"",
     "\"final\"",
+    "\"print\"",
+    "\"if\"",
+    "\"else\"",
+    "\"while\"",
     "<IDENT>",
     "<NUMBER>",
     "\"+\"",
@@ -55,9 +73,12 @@ public interface PostFixExprParseConstants {
     "\"/\"",
     "\"(\"",
     "\")\"",
+    "\"{\"",
+    "\"}\"",
     "\"=\"",
     "\",\"",
     "\";\"",
+    "<COMPOP>",
   };
 
 }

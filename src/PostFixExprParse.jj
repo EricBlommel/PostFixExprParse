@@ -5,7 +5,6 @@ options {
 
 PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
 public class PostFixExprParse {
-    private SymbolTable st = new SymbolTable();
     public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
         try {
@@ -28,6 +27,10 @@ SKIP: {
 TOKEN: {
     < INT : "int" > //Schlüsselwort
     | < FINAL : "final" > //& später "int" einsetzen
+    | < PRINT : "print" > // VOR IDENT!
+    | < IF : "if" > // VOR IDENT!
+    | < ELSE : "else" > // VOR IDENT!
+    | < WHILE : "while" > // VOR IDENT!
     | < IDENT : ["a"-"z"] (["a"-"z","A"-"Z","0"-"9"])* >
     | < NUMBER : "0" | (["1"-"9"] (["0"-"9"])*) >
     | < PLUS   : "+" >
@@ -36,62 +39,88 @@ TOKEN: {
     | < DIV    : "/" >
     | < KLAMMERAUF : "(" >
     | < KLAMMERZU : ")" >
+    | < CURLYAUF : "{" >
+    | < CURLYZU : "}" >
     | < EQUAL : "=" >
     | < COMMA : "," >
     | < SEMICOLON : ";" >
+    | < COMPOP : "=" | ">" | ">=" | "<" | "<=" >
 }
 
 void program(): {} {
-    (constDecl())?
+    constDecl()
+    varDecl()
     statement()
 }
 
 void constDecl(): {} {
-    <FINAL>
-    <INT>
-    constZuw()
-    ( <COMMA> constZuw() )*
-    <SEMICOLON>
+    ( <FINAL> <INT> constZuw() constList() <SEMICOLON> )?
 }
 
-void constZuw(): { Token ident; Token number; } {
-    ident = <IDENT>
-    <EQUAL>
-    number = <NUMBER>
-    { st.addConstant(ident.image, Integer.parseInt(number.image)); }
+void constZuw(): {} {
+    <IDENT> <EQUAL> <NUMBER>
 }
 
-void statement():{ String s; }
-{
-  s = summe() <EOF>
-  { System.out.println(s); }
+void constList(): {} {
+    ( <COMMA> constZuw() constList() )?
 }
 
-String summe() : { String left, right; Token op; }
-{
-  left = produkt()
-  (
-    ( op = <PLUS>  | op = <MINUS> )
-    right = produkt()
-    { left = left + " " + right + " " + op.image; }
-  )*
-  { return left; }
+void varDecl(): {} {
+    ( <INT> <IDENT> varZuw() varList() <SEMICOLON> )?
 }
 
-String produkt() : { String left, right; Token op; }
-{
-  left = term()
-  (
-    ( op = <MULT> | op = <DIV> )
-    right = term()
-    { left = left + " " + right + " " + op.image; }
-  )*
-  { return left; }
+void varZuw(): {} {
+    ( <EQUAL> <NUMBER> )?
 }
 
-String term() : { Token n, ident; String inside; }
-{
-    n = <NUMBER> { return n.image; }
-    | ident = <IDENT> { return st.getSymbol(ident.image).toString(); }
-    | <KLAMMERAUF> inside = summe() <KLAMMERZU> { return inside; }
+void varList(): {} {
+    ( <COMMA> <IDENT> varZuw() varList() )?
+}
+
+void expression(): {} {
+    term() summe()
+}
+
+void summe(): {} {
+    (
+    ( <PLUS> term() summe() )
+    | ( <MINUS> term() summe())
+    )?
+}
+
+void term(): {} {
+    faktor() product()
+}
+
+void product(): {} {
+    (
+    ( <MULT> term() summe() )
+    | ( <DIV> term() summe())
+    )?
+}
+
+void faktor(): {} {
+    <NUMBER>
+    | <IDENT>
+    | <KLAMMERAUF> expression() <KLAMMERZU>
+}
+
+void condition(): {} {
+    expression() <COMPOP> expression()
+}
+
+void statement(): {} {
+    (<IDENT> <EQUAL> expression() <SEMICOLON>)
+    | ( <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON> )
+    | ( <CURLYAUF> stmtLIST() <CURLYZU> )
+    | ( <IF> condition() statement() optElse() )
+    | ( <WHILE> condition() statement() )
+}
+
+void optElse(): {} {
+    ( <ELSE> statement() )?
+}
+
+void stmtLIST(): {} {
+    (statement() stmtLIST())?
 }
