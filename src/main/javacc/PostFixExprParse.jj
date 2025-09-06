@@ -4,12 +4,25 @@ options {
 }
 
 PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
+package parser;
+
+import JavaClassFileGenerator.CodeGen;
+import JavaClassFileGenerator.JavaClassFileGenerator;
+import JavaClassFileGenerator.MethodObject;
+import symbolTable.SymbolTable;
+
 public class PostFixExprParse {
+    private final SymbolTable st = new SymbolTable();
+    private final CodeGen code = new CodeGen(st);
+
     public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
         try {
             parser.program(); //Aufruf mit Startsymbol
-            System.out.println("Ausdruck syntaktisch ok!");
+            String mainHex = parser.code.finishMain();
+            JavaClassFileGenerator jcfg = new JavaClassFileGenerator("generated/Main", true, true, true);
+            MethodObject mainMethod = new MethodObject("main", 1, mainHex);
+            jcfg.generateClassFile(mainMethod);
         } catch (ParseException e) {
             System.err.println(e);
         }
@@ -57,24 +70,25 @@ void constDecl(): {} {
     ( <FINAL> <INT> constZuw() constList() <SEMICOLON> )?
 }
 
-void constZuw(): {} {
-    <IDENT> <EQUAL> <NUMBER>
+void constZuw(): { Token ident; Token number; } {
+  ident=<IDENT> <EQUAL> number=<NUMBER>
+  { st.addConstant(ident.image, Integer.parseInt(number.image)); }
 }
 
 void constList(): {} {
     ( <COMMA> constZuw() constList() )?
 }
 
-void varDecl(): {} {
-    ( <INT> <IDENT> varZuw() varList() <SEMICOLON> )?
+void varDecl(): { Token ident; } {
+    ( <INT> ident=<IDENT> { st.addVariable(ident.image); } varZuw(ident) varList() <SEMICOLON> )?
 }
 
-void varZuw(): {} {
-    ( <EQUAL> <NUMBER> )?
+void varZuw(Token id): { Token number; } {
+    ( <EQUAL> number=<NUMBER> { code.initVar(id.image, Integer.parseInt(number.image)); } )?
 }
 
-void varList(): {} {
-    ( <COMMA> <IDENT> varZuw() varList() )?
+void varList(): { Token id; } {
+    ( <COMMA> id=<IDENT> { st.addVariable(id.image); } varZuw(id) varList() )?
 }
 
 void expression(): {} {
@@ -82,9 +96,8 @@ void expression(): {} {
 }
 
 void summe(): {} {
-    (
-    ( <PLUS> term() summe() )
-    | ( <MINUS> term() summe())
+    ( <PLUS>  term() { code.add(); } summe()
+    | <MINUS> term() { code.sub(); } summe()
     )?
 }
 
@@ -93,34 +106,18 @@ void term(): {} {
 }
 
 void product(): {} {
-    (
-    ( <MULT> term() summe() )
-    | ( <DIV> term() summe())
+    ( <MULT> faktor() { code.mul(); } product()
+    | <DIV>  faktor() { code.div(); } product()
     )?
 }
 
-void faktor(): {} {
-    <NUMBER>
-    | <IDENT>
-    | <KLAMMERAUF> expression() <KLAMMERZU>
+void faktor(): { Token n; Token id; } {
+    n=<NUMBER> { code.pushInt(Integer.parseInt(n.image)); }
+  | id=<IDENT> { code.load(id.image); }
+  | <KLAMMERAUF> expression() <KLAMMERZU>
 }
 
-void condition(): {} {
-    expression() <COMPOP> expression()
-}
-
-void statement(): {} {
-    (<IDENT> <EQUAL> expression() <SEMICOLON>)
-    | ( <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON> )
-    | ( <CURLYAUF> stmtLIST() <CURLYZU> )
-    | ( <IF> condition() statement() optElse() )
-    | ( <WHILE> condition() statement() )
-}
-
-void optElse(): {} {
-    ( <ELSE> statement() )?
-}
-
-void stmtLIST(): {} {
-    (statement() stmtLIST())?
+void statement(): {} { // nur print erlaubt
+    <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
+    { code.print(); }
 }
