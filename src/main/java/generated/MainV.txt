@@ -66,33 +66,26 @@ b1     - return
 0019  // descriptor index
 0001  // method's attributes table
 0005  // "Code" index
-00000042  // attribute's length
-0002  // stack size
-0003  // locals
-00000020  // bytecode size
+0000001f  // attribute's length
+0003  // stack size
+0002  // locals
+00000013  // bytecode size
 
 ****Your byte code for "main" starts here****
-10 05  - bipush
-36 01  - istore
 10 03  - bipush
-36 02  - istore
+36 01  - istore
+10 05  - bipush
 15 01  - iload
-15 02  - iload
-a4 000f  - if_icmple
 15 01  - iload
-b8 0017  - invokestatic
-a0 00d0  - if_icmpne
-a0 00a0  - if_icmpne
-15 02  - iload
+68     - imul
+15 01  - iload
+68     - imul
+60     - iadd
 b8 0017  - invokestatic
 b1     - return
 
 0000  // exceptions table
-0001  // attribute's attribute table
-0012  // "StackMapTable" index
-00000010  // attribute size
-0003  // StackMapTable entries
-ff 00 1b 00 03 07 00 14 01 01 00 00 9b 2c  // attribute values necessary for goto and compare operations
+0000  // attribute's attribute table
 
 
 :::attributes table:::

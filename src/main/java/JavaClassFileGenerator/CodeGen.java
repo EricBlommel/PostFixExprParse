@@ -5,7 +5,7 @@ import symbolTable.SymbolTable;
 import static JavaClassFileGenerator.JavaClassFileGenerator.*;
 
 public class CodeGen {
-    private final StringBuilder hex = new StringBuilder();
+    public final StringBuilder hex = new StringBuilder();
     private final SymbolTable st;
 
     public CodeGen(SymbolTable st) {
@@ -24,7 +24,7 @@ public class CodeGen {
         return hex.append(s);
     }
 
-    void emitAt(int atBytes, String fourHex) {
+    public void emitAt(int atBytes, String fourHex) {
         int i = atBytes * 2;
         hex.replace(i, i + 4, fourHex);
     }
@@ -40,11 +40,11 @@ public class CodeGen {
     public void load(String name) {
         if (st.isConst(name)) push(st.constValue(name));
         else emit(ILOAD + toByteHex(st.varSlot(name)));
-    } // ILOAD
+    }
 
     public void store(String name) {
         emit(ISTORE + toByteHex(st.varSlot(name)));
-    } // ISTORE
+    }
 
     public void add() {
         emit(IADD);
@@ -63,8 +63,8 @@ public class CodeGen {
     }
 
     public void print() {
-        emit(INVOKESTATIC + "(print)");
-    } // invokestatic print(I)V – Platzhalter, API ersetzt (print) automatisch
+        emit(INVOKESTATIC + "ZZZZ");
+    }
 
     public void initVar(String n, int v) {
         push(v);
@@ -72,7 +72,7 @@ public class CodeGen {
     }
 
     public String finishMain() {
-        return emit(RETURN).toString();
+        return emit(RETURN).toString().replace("ZZZZ", "(print)");
     }
 
     public int pc() {

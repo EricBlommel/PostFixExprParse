@@ -21,6 +21,7 @@ public class PostFixExprParse {
         try {
             parser.program(); //Aufruf mit Startsymbol
             String mainHex = parser.code.finishMain();
+            System.out.println(mainHex);
             JavaClassFileGenerator jcfg = new JavaClassFileGenerator("generated/Main", true, true, true);
             MethodObject mainMethod = new MethodObject("main", 1, mainHex);
             jcfg.generateClassFile(mainMethod);
@@ -136,7 +137,7 @@ int condition(): { Token op; int jumpPlaceholder; } {
       case GE: jumpPlaceholder = code.if_icmplt(); break; // a>=b  -> springe, wenn a<b
       case GT: jumpPlaceholder = code.if_icmple(); break; // a>b   -> springe, wenn a<=b
       case LE: jumpPlaceholder = code.if_icmpgt(); break; // a<=b  -> springe, wenn a>b
-      default: jumpPlaceholder = code.ifFalse_goto();     // Fallback
+      default: throw new ParseException("wrong condition token");
     }
     { return jumpPlaceholder; }
   }
@@ -150,20 +151,14 @@ void statement() throws LWertException: { Token ident; int falseJump; int endJum
       }
       code.store(ident.image);
     }
-  | // print
-    <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
-    { code.print(); }
-  | // Block { ... }
-    <CURLYAUF> stmtLIST() <CURLYZU>
-  | // if-else
-    <IF> falseJump=condition() statement()
-    {
-      endJump = code.ifFalse_goto();
-    }
-    optElse(falseJump)
-    {
-  code.patchJumpPlaceholder(endJump, code.pc());
-}
+    | // print
+        <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
+        { code.print(); }
+    | // Block { ... }
+        <CURLYAUF> stmtLIST() <CURLYZU>
+    | // if-else
+        <IF> falseJump=condition() statement()
+        optElse(falseJump)
   | // while ... S
     <WHILE>
     {
@@ -180,9 +175,7 @@ void statement() throws LWertException: { Token ident; int falseJump; int endJum
     }
 }
 
-void optElse(int falseJump) throws LWertException:
-{ boolean hasElse = false; int endJump = -1; }
-{
+void optElse(int falseJump) throws LWertException: { boolean hasElse = false; int endJump = -1; } {
     ( <ELSE>
         {
         hasElse = true;
@@ -192,16 +185,16 @@ void optElse(int falseJump) throws LWertException:
     }
     statement()
     {
-      // nach else-Block: (skip else wenn Bedingung true)
-      code.patchJumpPlaceholder(endJump, code.pc());
+        // nach else-Block: (skip else wenn Bedingung true)
+        code.patchJumpPlaceholder(endJump, code.pc());
     }
-  )?
-  {
-    if (!hasElse) {
-      // kein else: False-Zweig fällt hinter das THEN – hier patchen
-      code.patchJumpPlaceholder(falseJump, code.pc());
+    )?
+    {
+        if (!hasElse) {
+            // kein else: False-Zweig fällt hinter das THEN – hier patchen
+            code.patchJumpPlaceholder(falseJump, code.pc());
+        }
     }
-  }
 }
 
 void stmtLIST() throws LWertException: {} {

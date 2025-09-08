@@ -256,7 +256,7 @@ switch (op.kind) {
       case GE: jumpPlaceholder = code.if_icmplt(); break; // a>=b  -> springe, wenn a<b
       case GT: jumpPlaceholder = code.if_icmple(); break; // a>b   -> springe, wenn a<=b
       case LE: jumpPlaceholder = code.if_icmpgt(); break; // a<=b  -> springe, wenn a>b
-      default: jumpPlaceholder = code.ifFalse_goto();     // Fallback
+      default: {if (true) throw new ParseException("TEST");}
     }
     { {if ("" != null) return jumpPlaceholder;} }
     throw new Error("Missing return statement in function");
@@ -294,9 +294,7 @@ code.print();
       jj_consume_token(IF);
       falseJump = condition();
       statement();
-endJump = code.ifFalse_goto();
       optElse(falseJump);
-code.patchJumpPlaceholder(endJump, code.pc());
       break;
       }
     case WHILE:{
@@ -327,10 +325,13 @@ loopStart = code.pc(); // Start der Schleife merken
 hasElse = true;
         // False der Bedingung landet am Anfang von else:
         endJump = code.ifFalse_goto();
+        System.out.println(code.hex);
         code.patchJumpPlaceholder(falseJump, code.pc());
       statement();
 // nach else-Block: (skip else wenn Bedingung true)
-      code.patchJumpPlaceholder(endJump, code.pc());
+        System.out.println(code.hex);
+        code.patchJumpPlaceholder(endJump, code.pc());
+        System.out.println(code.hex);
       break;
       }
     default:
@@ -338,9 +339,9 @@ hasElse = true;
       ;
     }
 if (!hasElse) {
-      // kein else: False-Zweig fällt hinter das THEN – hier patchen
-      code.patchJumpPlaceholder(falseJump, code.pc());
-    }
+            // kein else: False-Zweig fällt hinter das THEN – hier patchen
+            code.patchJumpPlaceholder(falseJump, code.pc());
+        }
 }
 
   final public void stmtLIST() throws ParseException, LWertException {
