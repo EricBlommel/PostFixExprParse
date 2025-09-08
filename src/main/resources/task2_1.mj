@@ -1,0 +1,11 @@
+final int n = 8;
+int a = 0, b = 1, tmp, i = 0;
+{
+  while i < n {
+    tmp = a + b;
+    a = b;
+    b = tmp;
+    i = i + 1;
+  }
+  print(a);
+}

@@ -7,6 +7,7 @@ import JavaClassFileGenerator.CodeGen;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
 import symbolTable.SymbolTable;
+import parser.exceptions.LWertException;
 
 public class PostFixExprParse implements PostFixExprParseConstants {
     private final SymbolTable st = new SymbolTable();
@@ -25,10 +26,11 @@ public class PostFixExprParse implements PostFixExprParseConstants {
         }
     }
 
-  final public void program() throws ParseException {
+  final public void program() throws ParseException, LWertException {
     constDecl();
     varDecl();
     statement();
+    jj_consume_token(0);
 }
 
   final public void constDecl() throws ParseException {
@@ -85,12 +87,12 @@ st.addVariable(ident.image);
     }
 }
 
-  final public void varZuw(Token id) throws ParseException {Token number;
+  final public void varZuw(Token ident) throws ParseException {Token number;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case EQUAL:{
       jj_consume_token(EQUAL);
       number = jj_consume_token(NUMBER);
-code.initVar(id.image, Integer.parseInt(number.image));
+code.initVar(ident.image, Integer.parseInt(number.image));
       break;
       }
     default:
@@ -99,13 +101,13 @@ code.initVar(id.image, Integer.parseInt(number.image));
     }
 }
 
-  final public void varList() throws ParseException {Token id;
+  final public void varList() throws ParseException {Token ident;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case COMMA:{
       jj_consume_token(COMMA);
-      id = jj_consume_token(IDENT);
-st.addVariable(id.image);
-      varZuw(id);
+      ident = jj_consume_token(IDENT);
+st.addVariable(ident.image);
+      varZuw(ident);
       varList();
       break;
       }
@@ -189,16 +191,16 @@ code.div();
     }
 }
 
-  final public void faktor() throws ParseException {Token n; Token id;
+  final public void faktor() throws ParseException {Token n; Token ident;
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case NUMBER:{
       n = jj_consume_token(NUMBER);
-code.pushInt(Integer.parseInt(n.image));
+code.push(Integer.parseInt(n.image));
       break;
       }
     case IDENT:{
-      id = jj_consume_token(IDENT);
-code.load(id.image);
+      ident = jj_consume_token(IDENT);
+code.load(ident.image);
       break;
       }
     case KLAMMERAUF:{
@@ -214,13 +216,148 @@ code.load(id.image);
     }
 }
 
-  final public void statement() throws ParseException {
-    jj_consume_token(PRINT);
-    jj_consume_token(KLAMMERAUF);
+  final public int condition() throws ParseException {Token op; int jumpPlaceholder;
     expression();
-    jj_consume_token(KLAMMERZU);
-    jj_consume_token(SEMICOLON);
+    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+    case EQ:{
+      op = jj_consume_token(EQ);
+      break;
+      }
+    case NE:{
+      op = jj_consume_token(NE);
+      break;
+      }
+    case GE:{
+      op = jj_consume_token(GE);
+      break;
+      }
+    case GT:{
+      op = jj_consume_token(GT);
+      break;
+      }
+    case LE:{
+      op = jj_consume_token(LE);
+      break;
+      }
+    case LT:{
+      op = jj_consume_token(LT);
+      break;
+      }
+    default:
+      jj_la1[10] = jj_gen;
+      jj_consume_token(-1);
+      throw new ParseException();
+    }
+    expression();
+switch (op.kind) {
+      case EQ: jumpPlaceholder = code.if_icmpne(); break; // a==b  -> springe, wenn a!=b
+      case NE: jumpPlaceholder = code.if_icmpeq(); break; // a!=b  -> springe, wenn a==b
+      case LT: jumpPlaceholder = code.if_icmpge(); break; // a<b   -> springe, wenn a>=b
+      case GE: jumpPlaceholder = code.if_icmplt(); break; // a>=b  -> springe, wenn a<b
+      case GT: jumpPlaceholder = code.if_icmple(); break; // a>b   -> springe, wenn a<=b
+      case LE: jumpPlaceholder = code.if_icmpgt(); break; // a<=b  -> springe, wenn a>b
+      default: jumpPlaceholder = code.ifFalse_goto();     // Fallback
+    }
+    { {if ("" != null) return jumpPlaceholder;} }
+    throw new Error("Missing return statement in function");
+}
+
+  final public void statement() throws ParseException, LWertException {Token ident; int falseJump; int endJump; int loopStart;
+    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+    case IDENT:{
+      ident = jj_consume_token(IDENT);
+      jj_consume_token(EQUAL);
+      expression();
+      jj_consume_token(SEMICOLON);
+if (!st.isVar(ident.image)) {
+        {if (true) throw new LWertException("Zuweisung auf Konstante: " + ident.image);}
+      }
+      code.store(ident.image);
+      break;
+      }
+    case PRINT:{
+      jj_consume_token(PRINT);
+      jj_consume_token(KLAMMERAUF);
+      expression();
+      jj_consume_token(KLAMMERZU);
+      jj_consume_token(SEMICOLON);
 code.print();
+      break;
+      }
+    case CURLYAUF:{
+      jj_consume_token(CURLYAUF);
+      stmtLIST();
+      jj_consume_token(CURLYZU);
+      break;
+      }
+    case IF:{
+      jj_consume_token(IF);
+      falseJump = condition();
+      statement();
+endJump = code.ifFalse_goto();
+      optElse(falseJump);
+code.patchJumpPlaceholder(endJump, code.pc());
+      break;
+      }
+    case WHILE:{
+      jj_consume_token(WHILE);
+loopStart = code.pc(); // Start der Schleife merken
+
+      falseJump = condition();
+      statement();
+// Mit GOTO zurück zum Schleifenanfang (per Platzhalter + Patch)
+      int back = code.ifFalse_goto();
+      code.patchJumpPlaceholder(back, loopStart);
+
+      // false-Zweig (Abbruch) auf hier patchen
+      code.patchJumpPlaceholder(falseJump, code.pc());
+      break;
+      }
+    default:
+      jj_la1[11] = jj_gen;
+      jj_consume_token(-1);
+      throw new ParseException();
+    }
+}
+
+  final public void optElse(int falseJump) throws ParseException, LWertException {boolean hasElse = false; int endJump = -1;
+    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+    case ELSE:{
+      jj_consume_token(ELSE);
+hasElse = true;
+        // False der Bedingung landet am Anfang von else:
+        endJump = code.ifFalse_goto();
+        code.patchJumpPlaceholder(falseJump, code.pc());
+      statement();
+// nach else-Block: (skip else wenn Bedingung true)
+      code.patchJumpPlaceholder(endJump, code.pc());
+      break;
+      }
+    default:
+      jj_la1[12] = jj_gen;
+      ;
+    }
+if (!hasElse) {
+      // kein else: False-Zweig fällt hinter das THEN – hier patchen
+      code.patchJumpPlaceholder(falseJump, code.pc());
+    }
+}
+
+  final public void stmtLIST() throws ParseException, LWertException {
+    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+    case PRINT:
+    case IF:
+    case WHILE:
+    case IDENT:
+    case CURLYAUF:{
+      statement();
+      stmtLIST();
+      break;
+      }
+    default:
+      jj_la1[13] = jj_gen;
+      ;
+    }
 }
 
   /** Generated Token Manager. */
@@ -232,13 +369,13 @@ code.print();
   public Token jj_nt;
   private int jj_ntk;
   private int jj_gen;
-  final private int[] jj_la1 = new int[10];
+  final private int[] jj_la1 = new int[14];
   static private int[] jj_la1_0;
   static {
 	   jj_la1_init_0();
 	}
 	private static void jj_la1_init_0() {
-	   jj_la1_0 = new int[] {0x40,0x400000,0x20,0x200000,0x400000,0x6000,0x6000,0x18000,0x18000,0x21800,};
+	   jj_la1_0 = new int[] {0x40,0x400000,0x20,0x200000,0x400000,0x6000,0x6000,0x18000,0x18000,0x21800,0x3f000000,0x80d80,0x200,0x80d80,};
 	}
 
   /** Constructor with InputStream. */
@@ -252,7 +389,7 @@ code.print();
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 10; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 14; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -266,7 +403,7 @@ code.print();
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 10; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 14; i++) jj_la1[i] = -1;
   }
 
   /** Constructor. */
@@ -276,7 +413,7 @@ code.print();
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 10; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 14; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -294,7 +431,7 @@ code.print();
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 10; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 14; i++) jj_la1[i] = -1;
   }
 
   /** Constructor with generated Token Manager. */
@@ -303,7 +440,7 @@ code.print();
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 10; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 14; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -312,7 +449,7 @@ code.print();
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 10; i++) jj_la1[i] = -1;
+	 for (int i = 0; i < 14; i++) jj_la1[i] = -1;
   }
 
   private Token jj_consume_token(int kind) throws ParseException {
@@ -363,12 +500,12 @@ code.print();
   /** Generate ParseException. */
   public ParseException generateParseException() {
 	 jj_expentries.clear();
-	 boolean[] la1tokens = new boolean[25];
+	 boolean[] la1tokens = new boolean[30];
 	 if (jj_kind >= 0) {
 	   la1tokens[jj_kind] = true;
 	   jj_kind = -1;
 	 }
-	 for (int i = 0; i < 10; i++) {
+	 for (int i = 0; i < 14; i++) {
 	   if (jj_la1[i] == jj_gen) {
 		 for (int j = 0; j < 32; j++) {
 		   if ((jj_la1_0[i] & (1<<j)) != 0) {
@@ -377,7 +514,7 @@ code.print();
 		 }
 	   }
 	 }
-	 for (int i = 0; i < 25; i++) {
+	 for (int i = 0; i < 30; i++) {
 	   if (la1tokens[i]) {
 		 jj_expentry = new int[1];
 		 jj_expentry[0] = i;

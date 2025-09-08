@@ -3,8 +3,9 @@
     <option name="MAIN_CLASS_NAME" value="parser.PostFixExprParse" />
     <module name="PostFixExprParse" />
     <option name="REDIRECT_INPUT" value="true" />
-    <option name="INPUT_FILE" value="$PROJECT_DIR$/test.mj" />
+    <option name="INPUT_FILE" value="$PROJECT_DIR$/program.mj" />
     <shortenClasspath name="NONE" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/src/main/java" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

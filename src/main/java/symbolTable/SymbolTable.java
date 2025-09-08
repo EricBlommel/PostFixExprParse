@@ -39,6 +39,10 @@ public class SymbolTable {
         return consts.containsKey(n);
     }
 
+    public boolean isVar(String n) {
+        return vars.containsKey(n);
+    }
+
     public int constValue(String n) {
         return consts.get(n);
     }

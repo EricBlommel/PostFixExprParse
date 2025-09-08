@@ -10,6 +10,7 @@ import JavaClassFileGenerator.CodeGen;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
 import symbolTable.SymbolTable;
+import parser.exceptions.LWertException;
 
 public class PostFixExprParse {
     private final SymbolTable st = new SymbolTable();
@@ -57,13 +58,19 @@ TOKEN: {
     | < EQUAL : "=" >
     | < COMMA : "," >
     | < SEMICOLON : ";" >
-    | < COMPOP : "=" | ">" | ">=" | "<" | "<=" >
+    | < EQ : "==" >
+    | < NE : "!=" >
+    | < GE : ">=" >
+    | < LE : "<=" >
+    | < GT : ">"  >
+    | < LT : "<"  >
 }
 
-void program(): {} {
+void program() throws LWertException: {} {
     constDecl()
     varDecl()
     statement()
+    <EOF>
 }
 
 void constDecl(): {} {
@@ -83,12 +90,12 @@ void varDecl(): { Token ident; } {
     ( <INT> ident=<IDENT> { st.addVariable(ident.image); } varZuw(ident) varList() <SEMICOLON> )?
 }
 
-void varZuw(Token id): { Token number; } {
-    ( <EQUAL> number=<NUMBER> { code.initVar(id.image, Integer.parseInt(number.image)); } )?
+void varZuw(Token ident): { Token number; } {
+    ( <EQUAL> number=<NUMBER> { code.initVar(ident.image, Integer.parseInt(number.image)); } )?
 }
 
-void varList(): { Token id; } {
-    ( <COMMA> id=<IDENT> { st.addVariable(id.image); } varZuw(id) varList() )?
+void varList(): { Token ident; } {
+    ( <COMMA> ident=<IDENT> { st.addVariable(ident.image); } varZuw(ident) varList() )?
 }
 
 void expression(): {} {
@@ -111,13 +118,92 @@ void product(): {} {
     )?
 }
 
-void faktor(): { Token n; Token id; } {
-    n=<NUMBER> { code.pushInt(Integer.parseInt(n.image)); }
-  | id=<IDENT> { code.load(id.image); }
+void faktor(): { Token n; Token ident; } {
+    n=<NUMBER> { code.push(Integer.parseInt(n.image)); }
+  | ident=<IDENT> { code.load(ident.image); }
   | <KLAMMERAUF> expression() <KLAMMERZU>
 }
 
-void statement(): {} { // nur print erlaubt
+int condition(): { Token op; int jumpPlaceholder; } {
+  expression()
+  ( op=<EQ> | op=<NE> | op=<GE> | op=<GT> | op=<LE> | op=<LT> )
+  expression()
+  {
+    switch (op.kind) {
+      case EQ: jumpPlaceholder = code.if_icmpne(); break; // a==b  -> springe, wenn a!=b
+      case NE: jumpPlaceholder = code.if_icmpeq(); break; // a!=b  -> springe, wenn a==b
+      case LT: jumpPlaceholder = code.if_icmpge(); break; // a<b   -> springe, wenn a>=b
+      case GE: jumpPlaceholder = code.if_icmplt(); break; // a>=b  -> springe, wenn a<b
+      case GT: jumpPlaceholder = code.if_icmple(); break; // a>b   -> springe, wenn a<=b
+      case LE: jumpPlaceholder = code.if_icmpgt(); break; // a<=b  -> springe, wenn a>b
+      default: jumpPlaceholder = code.ifFalse_goto();     // Fallback
+    }
+    { return jumpPlaceholder; }
+  }
+}
+
+void statement() throws LWertException: { Token ident; int falseJump; int endJump; int loopStart; } {
+    ident=<IDENT> <EQUAL> expression() <SEMICOLON>
+    {
+      if (!st.isVar(ident.image)) {
+        throw new LWertException("Zuweisung auf Konstante: " + ident.image);
+      }
+      code.store(ident.image);
+    }
+  | // print
     <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
     { code.print(); }
+  | // Block { ... }
+    <CURLYAUF> stmtLIST() <CURLYZU>
+  | // if-else
+    <IF> falseJump=condition() statement()
+    {
+      endJump = code.ifFalse_goto();
+    }
+    optElse(falseJump)
+    {
+  code.patchJumpPlaceholder(endJump, code.pc());
+}
+  | // while ... S
+    <WHILE>
+    {
+      loopStart = code.pc(); // Start der Schleife merken
+    }
+    falseJump=condition() statement()
+    {
+      // Mit GOTO zurück zum Schleifenanfang (per Platzhalter + Patch)
+      int back = code.ifFalse_goto();
+      code.patchJumpPlaceholder(back, loopStart);
+
+      // false-Zweig (Abbruch) auf hier patchen
+      code.patchJumpPlaceholder(falseJump, code.pc());
+    }
+}
+
+void optElse(int falseJump) throws LWertException:
+{ boolean hasElse = false; int endJump = -1; }
+{
+    ( <ELSE>
+        {
+        hasElse = true;
+        // False der Bedingung landet am Anfang von else:
+        endJump = code.ifFalse_goto();
+        code.patchJumpPlaceholder(falseJump, code.pc());
+    }
+    statement()
+    {
+      // nach else-Block: (skip else wenn Bedingung true)
+      code.patchJumpPlaceholder(endJump, code.pc());
+    }
+  )?
+  {
+    if (!hasElse) {
+      // kein else: False-Zweig fällt hinter das THEN – hier patchen
+      code.patchJumpPlaceholder(falseJump, code.pc());
+    }
+  }
+}
+
+void stmtLIST() throws LWertException: {} {
+  ( statement() stmtLIST() )?
 }

@@ -2,6 +2,8 @@ package JavaClassFileGenerator;
 
 import symbolTable.SymbolTable;
 
+import static JavaClassFileGenerator.JavaClassFileGenerator.*;
+
 public class CodeGen {
     private final StringBuilder hex = new StringBuilder();
     private final SymbolTable st;
@@ -10,66 +12,109 @@ public class CodeGen {
         this.st = st;
     }
 
-    private static String b(int v) {
+    private static String toByteHex(int v) {
         return String.format("%02x", v & 0xFF);
     }
 
-    private static String w(int v) {
+    private static String toWordHex(int v) {
         return String.format("%04x", v & 0xFFFF);
     }
 
-    private void emit(String s) {
-        hex.append(s);
+    private StringBuilder emit(String s) {
+        return hex.append(s);
     }
 
-    public void pushInt(int v) {
-        if (v >= -128 && v <= 127) emit("10" + b(v));       // BIPUSH
-        else if (v >= -32768 && v <= 32767) emit("11" + w(v)); // SIPUSH
+    void emitAt(int atBytes, String fourHex) {
+        int i = atBytes * 2;
+        hex.replace(i, i + 4, fourHex);
+    }
+
+    public void push(int v) {
+        if (v >= -128 && v <= 127) emit(BIPUSH + toByteHex(v));       // BIPUSH
+        else if (v >= -32768 && v <= 32767) emit(SIPUSH + toWordHex(v)); // SIPUSH
         else {
-            int hi = v >>> 16, lo = v & 0xFFFF;
-            pushInt(hi);
-            pushInt(65536);
-            mul();
-            pushInt(lo);
-            add();
+            throw new IllegalArgumentException(v + " ist zu groß/ klein für bipush/ sipush");
         }
     }
 
     public void load(String name) {
-        if (st.isConst(name)) pushInt(st.constValue(name));
-        else emit("15" + b(st.varSlot(name)));
+        if (st.isConst(name)) push(st.constValue(name));
+        else emit(ILOAD + toByteHex(st.varSlot(name)));
     } // ILOAD
 
-    void store(String name) {
-        emit("36" + b(st.varSlot(name)));
+    public void store(String name) {
+        emit(ISTORE + toByteHex(st.varSlot(name)));
     } // ISTORE
 
     public void add() {
-        emit("60");
+        emit(IADD);
     }
 
     public void sub() {
-        emit("64");
+        emit(ISUB);
     }
 
     public void mul() {
-        emit("68");
+        emit(IMUL);
     }
 
     public void div() {
-        emit("6c");
+        emit(IDIV);
     }
 
     public void print() {
-        emit("b8(print)");
+        emit(INVOKESTATIC + "(print)");
     } // invokestatic print(I)V – Platzhalter, API ersetzt (print) automatisch
 
     public void initVar(String n, int v) {
-        pushInt(v);
+        push(v);
         store(n);
     }
 
     public String finishMain() {
-        return hex.append("b1").toString();
-    } // RETURN
+        return emit(RETURN).toString();
+    }
+
+    public int pc() {
+        return hex.length() / 2;
+    }
+
+    public int emitJumpWithPlaceholder(String op) {
+        emit(op + "0000");
+        return pc() - 2;
+    }
+
+    public void patchJumpPlaceholder(int at, int target) {
+        int rel = target - (at - 1);
+        emitAt(at, toWordHex(rel));
+    }
+
+    public int if_icmpeq() {
+        return emitJumpWithPlaceholder(IF_ICMPEQ);
+    }
+
+    public int if_icmpne() {
+        return emitJumpWithPlaceholder(IF_ICMPNE);
+    }
+
+    public int if_icmplt() {
+        return emitJumpWithPlaceholder(IF_ICMPLT);
+    }
+
+    public int if_icmpge() {
+        return emitJumpWithPlaceholder(IF_ICMPGE);
+    }
+
+    public int if_icmpgt() {
+        return emitJumpWithPlaceholder(IF_ICMPGT);
+    }
+
+    public int if_icmple() {
+        return emitJumpWithPlaceholder(IF_ICMPLE);
+    }
+
+    public int ifFalse_goto() {
+        return emitJumpWithPlaceholder(GOTO);
+    }
+
 }

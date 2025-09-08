@@ -50,7 +50,17 @@ public interface PostFixExprParseConstants {
   /** RegularExpression Id. */
   int SEMICOLON = 23;
   /** RegularExpression Id. */
-  int COMPOP = 24;
+  int EQ = 24;
+  /** RegularExpression Id. */
+  int NE = 25;
+  /** RegularExpression Id. */
+  int GE = 26;
+  /** RegularExpression Id. */
+  int LE = 27;
+  /** RegularExpression Id. */
+  int GT = 28;
+  /** RegularExpression Id. */
+  int LT = 29;
 
   /** Lexical state. */
   int DEFAULT = 0;
@@ -81,7 +91,12 @@ public interface PostFixExprParseConstants {
     "\"=\"",
     "\",\"",
     "\";\"",
-    "<COMPOP>",
+    "\"==\"",
+    "\"!=\"",
+    "\">=\"",
+    "\"<=\"",
+    "\">\"",
+    "\"<\"",
   };
 
 }

@@ -1,0 +1,99 @@
+:::magic number + minor and major version:::
+cafe babe 0000 0034
+
+:::constants table:::
+001a  // constants table size
+  1: 07 0002 - Class @2
+  2: 01 000e  67 65 6e 65 72 61 74 65 64 2f 4d 61 69 6e  - Constant "generated/Main"
+  3: 07 0004 - Class @4
+  4: 01 0010  6a 61 76 61 2f 6c 61 6e 67 2f 4f 62 6a 65 63 74  - Constant "java/lang/Object"
+  5: 01 0004  43 6f 64 65  - Constant "Code"
+  6: 01 0010  6a 61 76 61 2f 6c 61 6e 67 2f 53 79 73 74 65 6d  - Constant "java/lang/System"
+  7: 07 0006 - Class @6
+  8: 01 0003  6f 75 74  - Constant "out"
+  9: 01 0015  4c 6a 61 76 61 2f 69 6f 2f 50 72 69 6e 74 53 74 72 65 61 6d 3b  - Constant "Ljava/io/PrintStream;"
+ 10: 0c 0008 0009 - Name and type - name:@8, type:@9
+ 11: 09 0007 000a - Field reference - class:@7, NameAndType:@10
+ 12: 01 0013  6a 61 76 61 2f 69 6f 2f 50 72 69 6e 74 53 74 72 65 61 6d  - Constant "java/io/PrintStream"
+ 13: 07 000c - Class @12
+ 14: 01 0007  70 72 69 6e 74 6c 6e  - Constant "println"
+ 15: 01 0004  28 49 29 56  - Constant "(I)V"
+ 16: 0c 000e 000f - Name and type - name:@14, type:@15
+ 17: 0a 000d 0010 - Method reference - class:@13, NameAndType:@16
+ 18: 01 000d  53 74 61 63 6b 4d 61 70 54 61 62 6c 65  - Constant "StackMapTable"
+ 19: 01 0013  5b 4c 6a 61 76 61 2f 6c 61 6e 67 2f 53 74 72 69 6e 67 3b  - Constant "[Ljava/lang/String;"
+ 20: 07 0013 - Class @19
+ 21: 01 0005  70 72 69 6e 74  - Constant "print"
+ 22: 0c 0015 000f - Name and type - name:@21, type:@15
+ 23: 0a 0001 0016 - Method reference - class:@1, NameAndType:@22
+ 24: 01 0004  6d 61 69 6e  - Constant "main"
+ 25: 01 0016  28 5b 4c 6a 61 76 61 2f 6c 61 6e 67 2f 53 74 72 69 6e 67 3b 29 56  - Constant "([Ljava/lang/String;)V"
+
+:::class access flags, this class index, super class index:::
+0021 0001 0003
+
+:::interfaces table:::
+0000
+
+:::fields table:::
+0000  // fields table size
+
+
+:::methods table:::
+0002  // methods table size
+
+::: Method "print" :::
+0009  // access flags
+0015  // name index
+000f  // descriptor index
+0001  // method's attributes table
+0005  // "Code" index
+00000015  // attribute's length
+0002  // stack size
+0001  // locals
+00000009  // bytecode size
+b2 000b  - getstatic
+15 00  - iload
+b6 0011  - invokevirtual
+b1     - return
+
+0000  // exceptions table
+0000  // attribute's attribute table
+
+::: Method "main" :::
+0009  // access flags
+0018  // name index
+0019  // descriptor index
+0001  // method's attributes table
+0005  // "Code" index
+00000042  // attribute's length
+0002  // stack size
+0003  // locals
+00000020  // bytecode size
+
+****Your byte code for "main" starts here****
+10 05  - bipush
+36 01  - istore
+10 03  - bipush
+36 02  - istore
+15 01  - iload
+15 02  - iload
+a4 000f  - if_icmple
+15 01  - iload
+b8 0017  - invokestatic
+a0 00d0  - if_icmpne
+a0 00a0  - if_icmpne
+15 02  - iload
+b8 0017  - invokestatic
+b1     - return
+
+0000  // exceptions table
+0001  // attribute's attribute table
+0012  // "StackMapTable" index
+00000010  // attribute size
+0003  // StackMapTable entries
+ff 00 1b 00 03 07 00 14 01 01 00 00 9b 2c  // attribute values necessary for goto and compare operations
+
+
+:::attributes table:::
+0000  // attribute table size
