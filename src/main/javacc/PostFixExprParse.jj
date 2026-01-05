@@ -92,7 +92,8 @@ void varDecl(): { Token ident; } {
 }
 
 void varZuw(Token ident): { Token number; } {
-    ( <EQUAL> number=<NUMBER> { code.initVar(ident.image, Integer.parseInt(number.image)); } )?
+    ( <EQUAL> number=<NUMBER> { code.initVar(ident.image, Integer.parseInt(number.image)); } )
+    | {code.initVar(ident.image, 0);}
 }
 
 void varList(): { Token ident; } {

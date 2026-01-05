@@ -97,7 +97,7 @@ code.initVar(ident.image, Integer.parseInt(number.image));
       }
     default:
       jj_la1[3] = jj_gen;
-      ;
+code.initVar(ident.image, 0);
     }
 }
 
@@ -256,7 +256,7 @@ switch (op.kind) {
       case GE: jumpPlaceholder = code.if_icmplt(); break; // a>=b  -> springe, wenn a<b
       case GT: jumpPlaceholder = code.if_icmple(); break; // a>b   -> springe, wenn a<=b
       case LE: jumpPlaceholder = code.if_icmpgt(); break; // a<=b  -> springe, wenn a>b
-      default: {if (true) throw new ParseException("TEST");}
+      default: {if (true) throw new ParseException("wrong condition token");}
     }
     { {if ("" != null) return jumpPlaceholder;} }
     throw new Error("Missing return statement in function");
@@ -325,13 +325,10 @@ loopStart = code.pc(); // Start der Schleife merken
 hasElse = true;
         // False der Bedingung landet am Anfang von else:
         endJump = code.ifFalse_goto();
-        System.out.println(code.hex);
         code.patchJumpPlaceholder(falseJump, code.pc());
       statement();
 // nach else-Block: (skip else wenn Bedingung true)
-        System.out.println(code.hex);
         code.patchJumpPlaceholder(endJump, code.pc());
-        System.out.println(code.hex);
       break;
       }
     default:
