@@ -6,6 +6,7 @@ package parser;
 import JavaClassFileGenerator.CodeGen;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
+import parser.exceptions.ParseException;
 import symbolTable.SymbolTable;
 import parser.exceptions.LWertException;
 

@@ -9,7 +9,7 @@ package parser;
 import JavaClassFileGenerator.CodeGen;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
-import symbolTable.SymbolTable;
+import parser.exceptions.ParseException;import symbolTable.SymbolTable;
 import parser.exceptions.LWertException;
 
 public class PostFixExprParse {
@@ -29,6 +29,7 @@ public class PostFixExprParse {
             System.err.println(e);
         }
     }
+}}
 }
 PARSER_END(PostFixExprParse)
 
