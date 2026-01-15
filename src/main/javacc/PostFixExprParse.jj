@@ -10,12 +10,12 @@ package parser;
 import JavaClassFileGenerator.BytecodeGenerator;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
-import parser.exceptions.ParseException;import symbolTable.SymbolTable;
+import symbolTable.SymbolTable;
 import parser.exceptions.LWertException;
 
 public class PostFixExprParse {
     private final SymbolTable symbolTable = new SymbolTable();
-    private final BytecodeGenerator code = new BytecodeGenerator(st);
+    private final BytecodeGenerator code = new BytecodeGenerator(symbolTable);
 
     public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
@@ -82,7 +82,7 @@ void constDecl(): {} {
 
 void constZuw(): { Token ident; Token number; } {
   ident=<IDENT> <EQUAL> number=<NUMBER>
-  { st.addConstant(ident.image, Integer.parseInt(number.image)); }
+  { symbolTable.addConstant(ident.image, Integer.parseInt(number.image)); }
 }
 
 void constList(): {} {
@@ -90,7 +90,7 @@ void constList(): {} {
 }
 
 void varDecl(): { Token ident; } {
-    ( <INT> ident=<IDENT> { st.addVariable(ident.image); } varZuw(ident) varList() <SEMICOLON> )?
+    ( <INT> ident=<IDENT> { symbolTable.addVariable(ident.image); } varZuw(ident) varList() <SEMICOLON> )?
 }
 
 void varZuw(Token ident): { Token number; } {
@@ -99,7 +99,7 @@ void varZuw(Token ident): { Token number; } {
 }
 
 void varList(): { Token ident; } {
-    ( <COMMA> ident=<IDENT> { st.addVariable(ident.image); } varZuw(ident) varList() )?
+    ( <COMMA> ident=<IDENT> { symbolTable.addVariable(ident.image); } varZuw(ident) varList() )?
 }
 
 void expression(): {} {
@@ -149,7 +149,7 @@ int condition(): { Token op; int jumpPlaceholder; } {
 void statement() throws LWertException: { Token ident; int falseJump; int endJump; int loopStart; } {
     ident=<IDENT> <EQUAL> expression() <SEMICOLON>
     {
-      if (!st.isVar(ident.image)) {
+      if (!symbolTable.isVar(ident.image)) {
         throw new LWertException("Zuweisung auf Konstante: " + ident.image);
       }
       code.store(ident.image);

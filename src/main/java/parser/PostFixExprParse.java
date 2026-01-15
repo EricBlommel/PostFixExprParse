@@ -6,12 +6,12 @@ package parser;
 import JavaClassFileGenerator.BytecodeGenerator;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
-import parser.exceptions.ParseException;import symbolTable.SymbolTable;
+import symbolTable.SymbolTable;
 import parser.exceptions.LWertException;
 
 public class PostFixExprParse implements PostFixExprParseConstants {
     private final SymbolTable symbolTable = new SymbolTable();
-    private final BytecodeGenerator code = new BytecodeGenerator(st);
+    private final BytecodeGenerator code = new BytecodeGenerator(symbolTable);
 
     public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
@@ -54,7 +54,7 @@ public class PostFixExprParse implements PostFixExprParseConstants {
     ident = jj_consume_token(IDENT);
     jj_consume_token(EQUAL);
     number = jj_consume_token(NUMBER);
-st.addConstant(ident.image, Integer.parseInt(number.image));
+symbolTable.addConstant(ident.image, Integer.parseInt(number.image));
 }
 
   final public void constList() throws ParseException {
@@ -76,7 +76,7 @@ st.addConstant(ident.image, Integer.parseInt(number.image));
     case INT:{
       jj_consume_token(INT);
       ident = jj_consume_token(IDENT);
-st.addVariable(ident.image);
+symbolTable.addVariable(ident.image);
       varZuw(ident);
       varList();
       jj_consume_token(SEMICOLON);
@@ -107,7 +107,7 @@ code.initVar(ident.image, 0);
     case COMMA:{
       jj_consume_token(COMMA);
       ident = jj_consume_token(IDENT);
-st.addVariable(ident.image);
+symbolTable.addVariable(ident.image);
       varZuw(ident);
       varList();
       break;
@@ -270,7 +270,7 @@ switch (op.kind) {
       jj_consume_token(EQUAL);
       expression();
       jj_consume_token(SEMICOLON);
-if (!st.isVar(ident.image)) {
+if (!symbolTable.isVar(ident.image)) {
         {if (true) throw new LWertException("Zuweisung auf Konstante: " + ident.image);}
       }
       code.store(ident.image);
