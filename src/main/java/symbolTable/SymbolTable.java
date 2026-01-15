@@ -29,12 +29,13 @@ public class SymbolTable {
     }
 
     public Integer getSymbol(String ident) throws UnknownSymbolException {
-        if (!consts.containsKey(ident)) {
-            throw new UnknownSymbolException();
+        if (consts.containsKey(ident)) {
+            return consts.get(ident);
+        } else if (vars.containsKey(ident)) {
+            return vars.get(ident);
         }
-        return consts.get(ident);
+        throw new UnknownSymbolException();
     }
-
     public boolean isConst(String n) {
         return consts.containsKey(n);
     }

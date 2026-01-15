@@ -4,12 +4,12 @@ import symbolTable.SymbolTable;
 
 import static JavaClassFileGenerator.JavaClassFileGenerator.*;
 
-public class CodeGen {
+public class BytecodeGenerator {
     public final StringBuilder hex = new StringBuilder();
-    private final SymbolTable st;
+    private final SymbolTable symbolTable;
 
-    public CodeGen(SymbolTable st) {
-        this.st = st;
+    public BytecodeGenerator(SymbolTable symbolTable) {
+        this.symbolTable = symbolTable;
     }
 
     private static String toByteHex(int v) {
@@ -38,12 +38,12 @@ public class CodeGen {
     }
 
     public void load(String name) {
-        if (st.isConst(name)) push(st.constValue(name));
-        else emit(ILOAD + toByteHex(st.varSlot(name)));
+        if (symbolTable.isConst(name)) push(symbolTable.constValue(name));
+        else emit(ILOAD + toByteHex(symbolTable.varSlot(name)));
     }
 
     public void store(String name) {
-        emit(ISTORE + toByteHex(st.varSlot(name)));
+        emit(ISTORE + toByteHex(symbolTable.varSlot(name)));
     }
 
     public void add() {

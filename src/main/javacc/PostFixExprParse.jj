@@ -7,15 +7,15 @@ options {
 PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
 package parser;
 
-import JavaClassFileGenerator.CodeGen;
+import JavaClassFileGenerator.BytecodeGenerator;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
 import parser.exceptions.ParseException;import symbolTable.SymbolTable;
 import parser.exceptions.LWertException;
 
 public class PostFixExprParse {
-    private final SymbolTable st = new SymbolTable();
-    private final CodeGen code = new CodeGen(st);
+    private final SymbolTable symbolTable = new SymbolTable();
+    private final BytecodeGenerator code = new BytecodeGenerator(st);
 
     public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
