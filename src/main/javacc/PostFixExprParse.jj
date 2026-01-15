@@ -1,6 +1,7 @@
 options {
     //Hier können noch Optionen stehen z.B. static
     STATIC = false;
+    OUTPUT_DIRECTORY = "../java/parser/";
 }
 
 PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
@@ -29,8 +30,8 @@ public class PostFixExprParse {
             System.err.println(e);
         }
     }
-}}
 }
+
 PARSER_END(PostFixExprParse)
 
 SKIP: {
