@@ -1,4 +1,4 @@
-package symbolTable;
+package parser.exceptions;
 
 public class SymbolAlreadyDefinedException extends RuntimeException {
     public SymbolAlreadyDefinedException() {

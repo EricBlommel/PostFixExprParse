@@ -1,11 +1,14 @@
-final int n = 10;
-int a = 0, b = 1, tmp, i = 0;
+func fib(int n) {
+    int res = 0;
+
+    if n < 2
+        res = n;
+    else
+        res = fib(n - 1) + fib(n - 2);
+
+    return res;
+}
+
 {
-  while i < n {
-    tmp = a + b;
-    a = b;
-    b = tmp;
-    i = i + 1;
-  }
-  print(a);
+    print(fib(3));
 }

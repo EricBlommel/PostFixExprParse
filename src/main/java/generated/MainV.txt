@@ -2,7 +2,7 @@
 cafe babe 0000 0034
 
 :::constants table:::
-001a  // constants table size
+001e  // constants table size
   1: 07 0002 - Class @2
   2: 01 000e  67 65 6e 65 72 61 74 65 64 2f 4d 61 69 6e  - Constant "generated/Main"
   3: 07 0004 - Class @4
@@ -28,6 +28,10 @@ cafe babe 0000 0034
  23: 0a 0001 0016 - Method reference - class:@1, NameAndType:@22
  24: 01 0004  6d 61 69 6e  - Constant "main"
  25: 01 0016  28 5b 4c 6a 61 76 61 2f 6c 61 6e 67 2f 53 74 72 69 6e 67 3b 29 56  - Constant "([Ljava/lang/String;)V"
+ 26: 01 0003  66 69 62  - Constant "fib"
+ 27: 01 0004  28 49 29 49  - Constant "(I)I"
+ 28: 0c 001a 001b - Name and type - name:@26, type:@27
+ 29: 0a 0001 001c - Method reference - class:@1, NameAndType:@28
 
 :::class access flags, this class index, super class index:::
 0021 0001 0003
@@ -40,7 +44,7 @@ cafe babe 0000 0034
 
 
 :::methods table:::
-0002  // methods table size
+0003  // methods table size
 
 ::: Method "print" :::
 0009  // access flags
@@ -66,46 +70,59 @@ b1     - return
 0019  // descriptor index
 0001  // method's attributes table
 0005  // "Code" index
-00000059  // attribute's length
-0002  // stack size
-0005  // locals
-00000036  // bytecode size
+00000015  // attribute's length
+0001  // stack size
+0001  // locals
+00000009  // bytecode size
 
 ****Your byte code for "main" starts here****
-10 00  - bipush
-36 01  - istore
-10 01  - bipush
-36 02  - istore
-10 00  - bipush
-36 03  - istore
-10 00  - bipush
-36 04  - istore
-15 04  - iload
-10 0a  - bipush
-a2 001c  - if_icmpge
-15 01  - iload
-15 02  - iload
-60     - iadd
-36 03  - istore
-15 02  - iload
-36 01  - istore
-15 03  - iload
-36 02  - istore
-15 04  - iload
-10 01  - bipush
-60     - iadd
-36 04  - istore
-a7 ffe3  - goto
-15 01  - iload
+10 03  - bipush
+b8 001d  - invokestatic
 b8 0017  - invokestatic
 b1     - return
 
 0000  // exceptions table
+0000  // attribute's attribute table
+
+::: Method "fib" :::
+0009  // access flags
+001a  // name index
+001b  // descriptor index
+0001  // method's attributes table
+0005  // "Code" index
+00000046  // attribute's length
+0003  // stack size
+0002  // locals
+00000028  // bytecode size
+
+****Your byte code for "fib" starts here****
+10 00  - bipush
+36 01  - istore
+15 00  - iload
+10 02  - bipush
+a2 000a  - if_icmpge
+15 00  - iload
+36 01  - istore
+a7 0016  - goto
+15 00  - iload
+10 01  - bipush
+64     - isub
+b8 001d  - invokestatic
+15 00  - iload
+10 02  - bipush
+64     - isub
+b8 001d  - invokestatic
+60     - iadd
+36 01  - istore
+15 01  - iload
+ac     - ireturn
+
+0000  // exceptions table
 0001  // attribute's attribute table
 0012  // "StackMapTable" index
-00000011  // attribute size
+0000000c  // attribute size
 0002  // StackMapTable entries
-ff 00 10 00 05 07 00 14 01 01 01 01 00 00 1f  // attribute values necessary for goto and compare operations
+ff 00 12 00 02 01 01 00 00 12  // attribute values necessary for goto and compare operations
 
 
 :::attributes table:::

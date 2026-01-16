@@ -1,4 +1,4 @@
-package symbolTable;
+package parser.exceptions;
 
 public class UnknownSymbolException extends RuntimeException {
     public UnknownSymbolException() {

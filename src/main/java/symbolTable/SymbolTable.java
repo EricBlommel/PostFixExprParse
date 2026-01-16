@@ -1,12 +1,16 @@
 package symbolTable;
 
+import parser.exceptions.SymbolAlreadyDefinedException;
+import parser.exceptions.UnknownSymbolException;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class SymbolTable {
     private final Map<String, Integer> consts = new HashMap<>();
+    // Speichert globale Variablen
     private final Map<String, Integer> vars = new HashMap<>();
-    private int nextSlot = 1; // Slot 0 = args
+    private int nextSlot = 1;
 
     public void addConstant(String ident, Integer number) throws SymbolAlreadyDefinedException {
         if (consts.containsKey(ident) || vars.containsKey(ident)) {
@@ -15,18 +19,16 @@ public class SymbolTable {
         consts.put(ident, number);
     }
 
-    public void addVariable(String ident, Integer slot) {
+    public void addVariable(String ident) throws SymbolAlreadyDefinedException {
         if (consts.containsKey(ident) || vars.containsKey(ident)) {
             throw new SymbolAlreadyDefinedException();
         }
-        vars.put(ident, slot);
+        vars.put(ident, nextSlot++);
     }
 
-    public int addVariable(String ident) {
-        int slot = nextSlot++;
-        addVariable(ident, slot);
-        return slot;
-    }
+    public int constValue(String n) { return consts.get(n); }
+    public boolean isConst(String n) { return consts.containsKey(n); }
+    public boolean isVar(String n) { return vars.containsKey(n); }
 
     public Integer getSymbol(String ident) throws UnknownSymbolException {
         if (consts.containsKey(ident)) {
@@ -35,20 +37,5 @@ public class SymbolTable {
             return vars.get(ident);
         }
         throw new UnknownSymbolException();
-    }
-    public boolean isConst(String n) {
-        return consts.containsKey(n);
-    }
-
-    public boolean isVar(String n) {
-        return vars.containsKey(n);
-    }
-
-    public int constValue(String n) {
-        return consts.get(n);
-    }
-
-    public int varSlot(String n) {
-        return vars.get(n);
     }
 }

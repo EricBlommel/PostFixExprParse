@@ -2,11 +2,18 @@ package JavaClassFileGenerator;
 
 import symbolTable.SymbolTable;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static JavaClassFileGenerator.JavaClassFileGenerator.*;
 
 public class BytecodeGenerator {
     public final StringBuilder hex = new StringBuilder();
     private final SymbolTable symbolTable;
+
+    // Speichert die Zuordnung: Platzhalter (z.B. X001) -> echter Name (z.B. [globalVar])
+    private final Map<String, String> placeholderMap = new HashMap<>();
+    private int placeholderCounter = 0;
 
     public BytecodeGenerator(SymbolTable symbolTable) {
         this.symbolTable = symbolTable;
@@ -29,21 +36,17 @@ public class BytecodeGenerator {
         hex.replace(i, i + 4, fourHex);
     }
 
+    // Erstellt einen 4-Zeichen Platzhalter für unbekannte Namen und Adressen
+    private String createPlaceholder(String substitution) {
+        String placeholder = String.format("X%03d", placeholderCounter++);
+        placeholderMap.put(placeholder, substitution);
+        return placeholder;
+    }
+
     public void push(int v) {
-        if (v >= -128 && v <= 127) write(BIPUSH + toByteHex(v));       // BIPUSH
-        else if (v >= -32768 && v <= 32767) write(SIPUSH + toWordHex(v)); // SIPUSH
-        else {
-            throw new IllegalArgumentException(v + " ist zu groß/ klein für bipush/ sipush");
-        }
-    }
-
-    public void load(String name) {
-        if (symbolTable.isConst(name)) push(symbolTable.constValue(name));
-        else write(ILOAD + toByteHex(symbolTable.varSlot(name)));
-    }
-
-    public void store(String name) {
-        write(ISTORE + toByteHex(symbolTable.varSlot(name)));
+        if (v >= -128 && v <= 127) write(BIPUSH + toByteHex(v));
+        else if (v >= -32768 && v <= 32767) write(SIPUSH + toWordHex(v));
+        else throw new RuntimeException(v + " ist zu groß/ klein");
     }
 
     public void add() {
@@ -62,17 +65,67 @@ public class BytecodeGenerator {
         write(IDIV);
     }
 
+    public void loadLocal(int index) {
+        write(ILOAD + toByteHex(index));
+    }
+
+    public void storeLocal(int index) {
+        write(ISTORE + toByteHex(index));
+    }
+
+    // Globale Variablen benötigen eckige Klammern [] für JCFG
+    public void loadGlobal(String name) {
+        write(GETSTATIC + createPlaceholder("[" + name + "]"));
+    }
+
+    // Globale Variablen benötigen eckige Klammern [] für JCFG
+    public void storeGlobal(String name) {
+        write(PUTSTATIC + createPlaceholder("[" + name + "]"));
+    }
+
+    // Methoden benötigen runde Klammern () für JCFG
+    public void writeCall(String methodName, int argCount) {
+        write(INVOKESTATIC + createPlaceholder("(" + methodName + ")"));
+    }
+
+    public void returnVoid() {
+        write(RETURN);
+    }
+
+    public void returnInt() {
+        write(IRETURN);
+    }
+
     public void print() {
-        write(INVOKESTATIC + "ZZZZ");
+        write(INVOKESTATIC + createPlaceholder("(print)"));
     }
 
     public void initVar(String n, int v) {
         push(v);
-        store(n);
+        storeGlobal(n);
+    }
+
+    public void initLocalVar(int index, int value) {
+        push(value);
+        storeLocal(index);
+    }
+
+    // Ersetzt alle Platzhalter im Bytecode durch die für den JCFG lesbaren Strings
+    private String resolveHex() {
+        String finalHex = hex.toString();
+        for (Map.Entry<String, String> entry : placeholderMap.entrySet()) {
+            finalHex = finalHex.replace(entry.getKey(), entry.getValue());
+        }
+        return finalHex;
     }
 
     public String finishMain() {
-        return write(RETURN).toString().replace("ZZZZ", "(print)");
+        write(RETURN);
+        return resolveHex();
+    }
+
+    public String finish() {
+        return resolveHex();
     }
 
     public int pc() {
@@ -116,5 +169,4 @@ public class BytecodeGenerator {
     public int ifFalse_goto() {
         return writeJumpWithPlaceholder(GOTO);
     }
-
 }

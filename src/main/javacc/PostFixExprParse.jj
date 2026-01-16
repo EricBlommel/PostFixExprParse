@@ -1,59 +1,75 @@
 options {
-    //Hier können noch Optionen stehen z.B. static
     STATIC = false;
     OUTPUT_DIRECTORY = "../java/parser/";
 }
 
-PARSER_BEGIN(PostFixExprParse) //Hier muss der Klassenname stehen
+PARSER_BEGIN(PostFixExprParse)
 package parser;
 
 import JavaClassFileGenerator.BytecodeGenerator;
 import JavaClassFileGenerator.JavaClassFileGenerator;
 import JavaClassFileGenerator.MethodObject;
+import symbolTable.Method;
 import symbolTable.SymbolTable;
 import parser.exceptions.LWertException;
+import parser.exceptions.RWertException;
+import parser.exceptions.WrongParametersException;
+import parser.exceptions.UnknownSymbolException;
+import parser.exceptions.SymbolAlreadyDefinedException;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PostFixExprParse {
     private final SymbolTable symbolTable = new SymbolTable();
-    private final BytecodeGenerator code = new BytecodeGenerator(symbolTable);
+    private final Map<String, Method> methods = new HashMap<>();
+    private Method currentMethod;
 
     public static void main (String[] args) {
         PostFixExprParse parser = new PostFixExprParse(System.in);
         try {
-            parser.program(); //Aufruf mit Startsymbol
-            String mainHex = parser.code.finishMain();
-            System.out.println(mainHex);
+            parser.program();
+
             JavaClassFileGenerator jcfg = new JavaClassFileGenerator("generated/Main", true, true, true);
-            MethodObject mainMethod = new MethodObject("main", 1, mainHex);
-            jcfg.generateClassFile(mainMethod);
-        } catch (ParseException e) {
-            System.err.println(e);
+            List<MethodObject> methodObjects = new ArrayList<>();
+
+            for (Method m : parser.methods.values()) {
+                String hexCode;
+                // Main braucht spezielles Return am Ende, andere Methoden haben es bereits
+                if (m.getName().equals("main")) {
+                    hexCode = m.getCode().finishMain();
+                } else {
+                    hexCode = m.getCode().finish();
+                }
+
+                System.out.println("Method " + m.getName() + " Hex: " + hexCode);
+                methodObjects.add(new MethodObject(m.getName(), m.getParamCount(), hexCode));
+            }
+
+            jcfg.generateClassFile(methodObjects.toArray(new MethodObject[0]));
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
 
 PARSER_END(PostFixExprParse)
 
-SKIP: {
-      " " //Blank
-      | "\r" //Wagenrücklauf (return)
-      | "\n" //Neue Zeile (new line)
-      | "\t" //Tabulator
-}
+SKIP: { " " | "\r" | "\n" | "\t" }
 
 TOKEN: {
-    < INT : "int" > //Schlüsselwort
-    | < FINAL : "final" > //& später "int" einsetzen
-    | < PRINT : "print" > // VOR IDENT!
-    | < IF : "if" > // VOR IDENT!
-    | < ELSE : "else" > // VOR IDENT!
-    | < WHILE : "while" > // VOR IDENT!
-    | < IDENT : ["a"-"z"] (["a"-"z","A"-"Z","0"-"9"])* >
-    | < NUMBER : "0" | (["1"-"9"] (["0"-"9"])*) >
-    | < PLUS   : "+" >
-    | < MINUS  : "-" >
-    | < MULT   : "*" >
-    | < DIV    : "/" >
+    < INT : "int" >
+    | < FINAL : "final" >
+    | < PRINT : "print" >
+    | < IF : "if" >
+    | < ELSE : "else" >
+    | < WHILE : "while" >
+    | < FUNC : "func" >
+    | < VOID : "void" >
+    | < RETURN : "return" >
     | < KLAMMERAUF : "(" >
     | < KLAMMERZU : ")" >
     | < CURLYAUF : "{" >
@@ -61,145 +77,301 @@ TOKEN: {
     | < EQUAL : "=" >
     | < COMMA : "," >
     | < SEMICOLON : ";" >
-    | < EQ : "==" >
-    | < NE : "!=" >
-    | < GE : ">=" >
-    | < LE : "<=" >
-    | < GT : ">"  >
-    | < LT : "<"  >
+    | < EQ : "==" > | < NE : "!=" > | < GE : ">=" > | < LE : "<=" > | < GT : ">" > | < LT : "<" >
+    | < PLUS : "+" > | < MINUS : "-" > | < MULT : "*" > | < DIV : "/" >
+    | < IDENT : ["a"-"z","A"-"Z"] (["a"-"z","A"-"Z","0"-"9","_"])* >
+    | < NUMBER : "0" | (["1"-"9"] (["0"-"9"])*) >
 }
 
-void program() throws LWertException: {} {
+void program() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException: {} {
+    {
+        // Main-Methode als Container initialisieren und registrieren
+        currentMethod = new Method("main", false, symbolTable);
+        currentMethod.addParameter("args");
+        methods.put("main", currentMethod);
+    }
     constDecl()
-    varDecl()
+    varDecl(false)
+    ( procedure() | function() )*
+
+    // Kontext zurück auf Main setzen für den Hauptblock
+    { currentMethod = methods.get("main"); }
     statement()
     <EOF>
 }
 
-void constDecl(): {} {
+void constDecl() throws SymbolAlreadyDefinedException: {} {
     ( <FINAL> <INT> constZuw() constList() <SEMICOLON> )?
 }
 
-void constZuw(): { Token ident; Token number; } {
+void constZuw() throws SymbolAlreadyDefinedException: { Token ident; Token number; } {
   ident=<IDENT> <EQUAL> number=<NUMBER>
   { symbolTable.addConstant(ident.image, Integer.parseInt(number.image)); }
 }
 
-void constList(): {} {
+void constList() throws SymbolAlreadyDefinedException: {} {
     ( <COMMA> constZuw() constList() )?
 }
 
-void varDecl(): { Token ident; } {
-    ( <INT> ident=<IDENT> { symbolTable.addVariable(ident.image); } varZuw(ident) varList() <SEMICOLON> )?
-}
-
-void varZuw(Token ident): { Token number; } {
-    ( <EQUAL> number=<NUMBER> { code.initVar(ident.image, Integer.parseInt(number.image)); } )
-    | {code.initVar(ident.image, 0);}
-}
-
-void varList(): { Token ident; } {
-    ( <COMMA> ident=<IDENT> { symbolTable.addVariable(ident.image); } varZuw(ident) varList() )?
-}
-
-void expression(): {} {
-    term() summe()
-}
-
-void summe(): {} {
-    ( <PLUS>  term() { code.add(); } summe()
-    | <MINUS> term() { code.sub(); } summe()
+void varDecl(boolean isLocal) throws SymbolAlreadyDefinedException: { Token ident; } {
+    (
+        <INT> ident=<IDENT>
+        {
+            if (isLocal) {
+                currentMethod.addLocalVariable(ident.image);
+            } else {
+                symbolTable.addVariable(ident.image);
+            }
+        }
+        varZuw(ident, isLocal)
+        varList(isLocal)
+        <SEMICOLON>
     )?
 }
 
-void term(): {} {
-    faktor() product()
+void varZuw(Token ident, boolean isLocal): { Token number; } {
+    (
+        <EQUAL> number=<NUMBER>
+        {
+            int val = Integer.parseInt(number.image);
+            if (isLocal) {
+                // Lokal: Wert auf Stack pushen und speichern
+                currentMethod.getCode().initLocalVar(currentMethod.getVarIndex(ident.image), val);
+            } else {
+                // Global: Initialisierung wird dem Main-Code hinzugefügt
+                currentMethod.getCode().initVar(ident.image, val);
+            }
+        }
+    )
+    |
+    {
+        // Standard-Initialisierung mit 0
+        if (isLocal) {
+            currentMethod.getCode().initLocalVar(currentMethod.getVarIndex(ident.image), 0);
+        } else {
+            currentMethod.getCode().initVar(ident.image, 0);
+        }
+    }
 }
 
-void product(): {} {
-    ( <MULT> faktor() { code.mul(); } product()
-    | <DIV>  faktor() { code.div(); } product()
+void varList(boolean isLocal) throws SymbolAlreadyDefinedException: { Token ident; } {
+    (
+        <COMMA> ident=<IDENT>
+        {
+            if (isLocal) currentMethod.addLocalVariable(ident.image);
+            else symbolTable.addVariable(ident.image);
+        }
+        varZuw(ident, isLocal)
+        varList(isLocal)
     )?
 }
 
-void faktor(): { Token n; Token ident; } {
-    n=<NUMBER> { code.push(Integer.parseInt(n.image)); }
-  | ident=<IDENT> { code.load(ident.image); }
-  | <KLAMMERAUF> expression() <KLAMMERZU>
+void expression() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
+    summe()
 }
 
-int condition(): { Token op; int jumpPlaceholder; } {
+void summe() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
+    product()
+    ( <PLUS> product() { currentMethod.getCode().add(); }
+    | <MINUS> product() { currentMethod.getCode().sub(); } )*
+}
+
+void product() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
+    term()
+    ( <MULT> term() { currentMethod.getCode().mul(); }
+    | <DIV> term() { currentMethod.getCode().div(); } )*
+}
+
+void term() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    Token n; Token ident;
+} {
+    n=<NUMBER> { currentMethod.getCode().push(Integer.parseInt(n.image)); }
+    |
+    ident=<IDENT>
+    (
+        // Entscheidung: Funktionsaufruf (Klammer folgt) vs. Variable
+        functionCall(ident)
+        |
+        {
+            // Variablenzugriff: Erst lokal suchen, dann global
+            int localIndex = currentMethod.getVarIndex(ident.image);
+            if (localIndex != -1) {
+                currentMethod.getCode().loadLocal(localIndex);
+            } else if (symbolTable.isConst(ident.image)) {
+                currentMethod.getCode().push(symbolTable.constValue(ident.image));
+            } else if (symbolTable.isVar(ident.image)) {
+                currentMethod.getCode().loadGlobal(ident.image);
+            } else {
+                throw new RWertException("Bezeichner unbekannt oder keine Variable/Konstante: " + ident.image);
+            }
+        }
+    )
+    |
+    <KLAMMERAUF> expression() <KLAMMERZU>
+}
+
+void functionCall(Token ident) throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    int argsCount = 0;
+} {
+    <KLAMMERAUF>
+    ( expression() { argsCount++; } ( <COMMA> expression() { argsCount++; } )* )?
+    <KLAMMERZU>
+    {
+        if (!methods.containsKey(ident.image)) {
+             throw new UnknownSymbolException();
+        } else {
+             Method m = methods.get(ident.image);
+             if (m.getParamCount() != argsCount) {
+                 throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber " + argsCount + " gegeben.");
+             }
+        }
+        currentMethod.getCode().writeCall(ident.image, argsCount);
+    }
+}
+
+void procCall() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    Token ident; int argsCount = 0;
+} {
+    ident=<IDENT> <KLAMMERAUF>
+    ( expression() { argsCount++; } ( <COMMA> expression() { argsCount++; } )* )?
+    <KLAMMERZU>
+    {
+        if (!methods.containsKey(ident.image)) {
+             throw new UnknownSymbolException();
+        }
+
+        Method m = methods.get(ident.image);
+        if (m.getParamCount() != argsCount) {
+             throw new WrongParametersException("Prozedur " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber " + argsCount + " gegeben.");
+        }
+
+        currentMethod.getCode().writeCall(ident.image, argsCount);
+    }
+}
+
+void procedure() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    Token ident;
+} {
+    <VOID> ident=<IDENT>
+    {
+        // Neue Methode erstellen und Kontext wechseln
+        Method m = new Method(ident.image, false, symbolTable);
+        methods.put(ident.image, m);
+        currentMethod = m;
+    }
+    <KLAMMERAUF> routinenParameter() <KLAMMERZU>
+    <CURLYAUF> routinenBlock() <CURLYZU>
+    {
+        currentMethod.getCode().returnVoid();
+    }
+}
+
+void function() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    Token ident;
+} {
+    <FUNC> ident=<IDENT>
+    {
+        // Neue Methode erstellen und Kontext wechseln
+        Method m = new Method(ident.image, true, symbolTable);
+        methods.put(ident.image, m);
+        currentMethod = m;
+    }
+    <KLAMMERAUF> routinenParameter() <KLAMMERZU>
+    <CURLYAUF>
+    routinenBlock()
+    <RETURN> expression() <SEMICOLON>
+    <CURLYZU>
+    {
+        currentMethod.getCode().returnInt();
+    }
+}
+
+void routinenParameter(): { Token ident; } {
+    ( <INT> ident=<IDENT> { currentMethod.addParameter(ident.image); }
+      ( <COMMA> <INT> ident=<IDENT> { currentMethod.addParameter(ident.image); } )* )?
+}
+
+void routinenBlock() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
+    constDecl()
+    varDecl(true)
+    stmtLIST()
+}
+
+int condition() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    Token op; int jumpPlaceholder;
+} {
   expression()
   ( op=<EQ> | op=<NE> | op=<GE> | op=<GT> | op=<LE> | op=<LT> )
   expression()
   {
     switch (op.kind) {
-      case EQ: jumpPlaceholder = code.if_icmpne(); break; // a==b  -> springe, wenn a!=b
-      case NE: jumpPlaceholder = code.if_icmpeq(); break; // a!=b  -> springe, wenn a==b
-      case LT: jumpPlaceholder = code.if_icmpge(); break; // a<b   -> springe, wenn a>=b
-      case GE: jumpPlaceholder = code.if_icmplt(); break; // a>=b  -> springe, wenn a<b
-      case GT: jumpPlaceholder = code.if_icmple(); break; // a>b   -> springe, wenn a<=b
-      case LE: jumpPlaceholder = code.if_icmpgt(); break; // a<=b  -> springe, wenn a>b
+      case EQ: jumpPlaceholder = currentMethod.getCode().if_icmpne(); break;
+      case NE: jumpPlaceholder = currentMethod.getCode().if_icmpeq(); break;
+      case LT: jumpPlaceholder = currentMethod.getCode().if_icmpge(); break;
+      case GE: jumpPlaceholder = currentMethod.getCode().if_icmplt(); break;
+      case GT: jumpPlaceholder = currentMethod.getCode().if_icmple(); break;
+      case LE: jumpPlaceholder = currentMethod.getCode().if_icmpgt(); break;
       default: throw new ParseException("wrong condition token");
     }
-    { return jumpPlaceholder; }
+    return jumpPlaceholder;
   }
 }
 
-void statement() throws LWertException: { Token ident; int falseJump; int endJump; int loopStart; } {
+void statement() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    Token ident; int falseJump; int loopStart;
+} {
+    // Lookahead notwendig: Unterscheidung Zuweisung vs. Ausdruck
+    LOOKAHEAD(2)
     ident=<IDENT> <EQUAL> expression() <SEMICOLON>
     {
-      if (!symbolTable.isVar(ident.image)) {
-        throw new LWertException("Zuweisung auf Konstante: " + ident.image);
-      }
-      code.store(ident.image);
+        int localIndex = currentMethod.getVarIndex(ident.image);
+        if (localIndex != -1) {
+            currentMethod.getCode().storeLocal(localIndex);
+        } else if (symbolTable.isVar(ident.image)) {
+            currentMethod.getCode().storeGlobal(ident.image);
+        } else {
+             throw new LWertException("Zuweisung nur an Variablen erlaubt (unbekannt): " + ident.image);
+        }
     }
-    | // print
-        <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
-        { code.print(); }
-    | // Block { ... }
-        <CURLYAUF> stmtLIST() <CURLYZU>
-    | // if-else
-        <IF> falseJump=condition() statement()
-        optElse(falseJump)
-  | // while ... S
-    <WHILE>
-    {
-      loopStart = code.pc(); // Start der Schleife merken
-    }
+    |
+    procCall() <SEMICOLON>
+    |
+    <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
+    { currentMethod.getCode().print(); }
+    |
+    <CURLYAUF> stmtLIST() <CURLYZU>
+    |
+    <IF> falseJump=condition() statement() optElse(falseJump)
+    |
+    <WHILE> { loopStart = currentMethod.getCode().pc(); }
     falseJump=condition() statement()
     {
-      // Mit GOTO zurück zum Schleifenanfang (per Platzhalter + Patch)
-      int back = code.ifFalse_goto();
-      code.patchJumpPlaceholder(back, loopStart);
-
-      // false-Zweig (Abbruch) auf hier patchen
-      code.patchJumpPlaceholder(falseJump, code.pc());
+        int back = currentMethod.getCode().ifFalse_goto();
+        // Sprungziele patchen: Zurück zur Schleife und Ausstieg
+        currentMethod.getCode().patchJumpPlaceholder(back, loopStart);
+        currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
     }
 }
 
-void optElse(int falseJump) throws LWertException: { boolean hasElse = false; int endJump = -1; } {
+void optElse(int falseJump) throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    boolean hasElse = false; int endJump = -1;
+} {
     ( <ELSE>
-        {
+      {
         hasElse = true;
-        // False der Bedingung landet am Anfang von else:
-        endJump = code.ifFalse_goto();
-        code.patchJumpPlaceholder(falseJump, code.pc());
-    }
-    statement()
-    {
-        // nach else-Block: (skip else wenn Bedingung true)
-        code.patchJumpPlaceholder(endJump, code.pc());
-    }
+        endJump = currentMethod.getCode().ifFalse_goto();
+        currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
+      }
+      statement()
+      { currentMethod.getCode().patchJumpPlaceholder(endJump, currentMethod.getCode().pc()); }
     )?
     {
         if (!hasElse) {
-            // kein else: False-Zweig fällt hinter das THEN – hier patchen
-            code.patchJumpPlaceholder(falseJump, code.pc());
+            currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
         }
     }
 }
 
-void stmtLIST() throws LWertException: {} {
+void stmtLIST() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
   ( statement() stmtLIST() )?
 }
