@@ -20,18 +20,18 @@ public class BytecodeGenerator {
         return String.format("%04x", v & 0xFFFF);
     }
 
-    private StringBuilder emit(String s) {
+    private StringBuilder write(String s) {
         return hex.append(s);
     }
 
-    public void emitAt(int atBytes, String fourHex) {
+    public void writeAt(int atBytes, String fourHex) {
         int i = atBytes * 2;
         hex.replace(i, i + 4, fourHex);
     }
 
     public void push(int v) {
-        if (v >= -128 && v <= 127) emit(BIPUSH + toByteHex(v));       // BIPUSH
-        else if (v >= -32768 && v <= 32767) emit(SIPUSH + toWordHex(v)); // SIPUSH
+        if (v >= -128 && v <= 127) write(BIPUSH + toByteHex(v));       // BIPUSH
+        else if (v >= -32768 && v <= 32767) write(SIPUSH + toWordHex(v)); // SIPUSH
         else {
             throw new IllegalArgumentException(v + " ist zu groß/ klein für bipush/ sipush");
         }
@@ -39,31 +39,31 @@ public class BytecodeGenerator {
 
     public void load(String name) {
         if (symbolTable.isConst(name)) push(symbolTable.constValue(name));
-        else emit(ILOAD + toByteHex(symbolTable.varSlot(name)));
+        else write(ILOAD + toByteHex(symbolTable.varSlot(name)));
     }
 
     public void store(String name) {
-        emit(ISTORE + toByteHex(symbolTable.varSlot(name)));
+        write(ISTORE + toByteHex(symbolTable.varSlot(name)));
     }
 
     public void add() {
-        emit(IADD);
+        write(IADD);
     }
 
     public void sub() {
-        emit(ISUB);
+        write(ISUB);
     }
 
     public void mul() {
-        emit(IMUL);
+        write(IMUL);
     }
 
     public void div() {
-        emit(IDIV);
+        write(IDIV);
     }
 
     public void print() {
-        emit(INVOKESTATIC + "ZZZZ");
+        write(INVOKESTATIC + "ZZZZ");
     }
 
     public void initVar(String n, int v) {
@@ -72,49 +72,49 @@ public class BytecodeGenerator {
     }
 
     public String finishMain() {
-        return emit(RETURN).toString().replace("ZZZZ", "(print)");
+        return write(RETURN).toString().replace("ZZZZ", "(print)");
     }
 
     public int pc() {
         return hex.length() / 2;
     }
 
-    public int emitJumpWithPlaceholder(String op) {
-        emit(op + "0000");
+    public int writeJumpWithPlaceholder(String op) {
+        write(op + "0000");
         return pc() - 2;
     }
 
     public void patchJumpPlaceholder(int at, int target) {
         int rel = target - (at - 1);
-        emitAt(at, toWordHex(rel));
+        writeAt(at, toWordHex(rel));
     }
 
     public int if_icmpeq() {
-        return emitJumpWithPlaceholder(IF_ICMPEQ);
+        return writeJumpWithPlaceholder(IF_ICMPEQ);
     }
 
     public int if_icmpne() {
-        return emitJumpWithPlaceholder(IF_ICMPNE);
+        return writeJumpWithPlaceholder(IF_ICMPNE);
     }
 
     public int if_icmplt() {
-        return emitJumpWithPlaceholder(IF_ICMPLT);
+        return writeJumpWithPlaceholder(IF_ICMPLT);
     }
 
     public int if_icmpge() {
-        return emitJumpWithPlaceholder(IF_ICMPGE);
+        return writeJumpWithPlaceholder(IF_ICMPGE);
     }
 
     public int if_icmpgt() {
-        return emitJumpWithPlaceholder(IF_ICMPGT);
+        return writeJumpWithPlaceholder(IF_ICMPGT);
     }
 
     public int if_icmple() {
-        return emitJumpWithPlaceholder(IF_ICMPLE);
+        return writeJumpWithPlaceholder(IF_ICMPLE);
     }
 
     public int ifFalse_goto() {
-        return emitJumpWithPlaceholder(GOTO);
+        return writeJumpWithPlaceholder(GOTO);
     }
 
 }
