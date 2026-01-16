@@ -9,7 +9,7 @@ import java.util.Map;
 public class SymbolTable {
     private final Map<String, Integer> consts = new HashMap<>();
     // Speichert globale Variablen
-    private final Map<String, Integer> vars = new HashMap<>();
+    private final Map<String, Integer> vars = new HashMap<>(); // direkt hex speichern Map String String
     private int nextSlot = 1;
 
     public void addConstant(String ident, Integer number) throws SymbolAlreadyDefinedException {

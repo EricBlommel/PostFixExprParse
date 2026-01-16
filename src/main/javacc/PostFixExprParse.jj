@@ -221,7 +221,7 @@ void functionCall(Token ident) throws LWertException, UnknownSymbolException, Sy
         } else {
              Method m = methods.get(ident.image);
              if (m.getParamCount() != argsCount) {
-                 throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber " + argsCount + " gegeben.");
+                 throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber erhielt " + argsCount);
              }
         }
         currentMethod.getCode().writeCall(ident.image, argsCount);

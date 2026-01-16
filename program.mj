@@ -1,14 +1,10 @@
-func fib(int n) {
-    int res = 0;
+func addiere(int a, int b) {
+    int summe = 0;
+    summe = a + b;
 
-    if n < 2
-        res = n;
-    else
-        res = fib(n - 1) + fib(n - 2);
-
-    return res;
+    return summe;
 }
 
 {
-    print(fib(3));
+    print(addiere(1,2,3));
 }

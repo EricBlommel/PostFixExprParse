@@ -3,8 +3,10 @@ int globalVar = 5;
 
 void printErgebnis(int wert) {
     int temp = 0;
-    temp = wert + OFFSET;
-    print(temp);
+    {
+        temp = wert + OFFSET;
+        print(temp);
+    }
 }
 
 func addiere(int a, int b) {

@@ -2,7 +2,7 @@
 cafe babe 0000 0034
 
 :::constants table:::
-001e  // constants table size
+0025  // constants table size
   1: 07 0002 - Class @2
   2: 01 000e  67 65 6e 65 72 61 74 65 64 2f 4d 61 69 6e  - Constant "generated/Main"
   3: 07 0004 - Class @4
@@ -26,12 +26,19 @@ cafe babe 0000 0034
  21: 01 0005  70 72 69 6e 74  - Constant "print"
  22: 0c 0015 000f - Name and type - name:@21, type:@15
  23: 0a 0001 0016 - Method reference - class:@1, NameAndType:@22
- 24: 01 0004  6d 61 69 6e  - Constant "main"
- 25: 01 0016  28 5b 4c 6a 61 76 61 2f 6c 61 6e 67 2f 53 74 72 69 6e 67 3b 29 56  - Constant "([Ljava/lang/String;)V"
- 26: 01 0003  66 69 62  - Constant "fib"
- 27: 01 0004  28 49 29 49  - Constant "(I)I"
- 28: 0c 001a 001b - Name and type - name:@26, type:@27
- 29: 0a 0001 001c - Method reference - class:@1, NameAndType:@28
+ 24: 01 0007  61 64 64 69 65 72 65  - Constant "addiere"
+ 25: 01 0005  28 49 49 29 49  - Constant "(II)I"
+ 26: 0c 0018 0019 - Name and type - name:@24, type:@25
+ 27: 0a 0001 001a - Method reference - class:@1, NameAndType:@26
+ 28: 01 0004  6d 61 69 6e  - Constant "main"
+ 29: 01 0016  28 5b 4c 6a 61 76 61 2f 6c 61 6e 67 2f 53 74 72 69 6e 67 3b 29 56  - Constant "([Ljava/lang/String;)V"
+ 30: 01 000d  70 72 69 6e 74 45 72 67 65 62 6e 69 73  - Constant "printErgebnis"
+ 31: 0c 001e 000f - Name and type - name:@30, type:@15
+ 32: 0a 0001 001f - Method reference - class:@1, NameAndType:@31
+ 33: 01 0009  67 6c 6f 62 61 6c 56 61 72  - Constant "globalVar"
+ 34: 01 0001  49  - Constant "I"
+ 35: 0c 0021 0022 - Name and type - name:@33, type:@34
+ 36: 09 0001 0023 - Field reference - class:@1, NameAndType:@35
 
 :::class access flags, this class index, super class index:::
 0021 0001 0003
@@ -40,11 +47,14 @@ cafe babe 0000 0034
 0000
 
 :::fields table:::
-0000  // fields table size
+0001  // fields table size
 
-
+0008 // access flags
+0021 // "globalVar" name index
+0022 // "I" descriptor index
+0000 // field attributes table
 :::methods table:::
-0003  // methods table size
+0004  // methods table size
 
 ::: Method "print" :::
 0009  // access flags
@@ -64,65 +74,77 @@ b1     - return
 0000  // exceptions table
 0000  // attribute's attribute table
 
-::: Method "main" :::
+::: Method "addiere" :::
 0009  // access flags
 0018  // name index
 0019  // descriptor index
 0001  // method's attributes table
 0005  // "Code" index
-00000015  // attribute's length
-0001  // stack size
+0000001a  // attribute's length
+0002  // stack size
+0003  // locals
+0000000e  // bytecode size
+
+****Your byte code for "addiere" starts here****
+10 00  - bipush
+36 02  - istore
+15 00  - iload
+15 01  - iload
+60     - iadd
+36 02  - istore
+15 02  - iload
+ac     - ireturn
+
+0000  // exceptions table
+0000  // attribute's attribute table
+
+::: Method "main" :::
+0009  // access flags
+001c  // name index
+001d  // descriptor index
+0001  // method's attributes table
+0005  // "Code" index
+0000001d  // attribute's length
+0002  // stack size
 0001  // locals
-00000009  // bytecode size
+00000011  // bytecode size
 
 ****Your byte code for "main" starts here****
-10 03  - bipush
-b8 001d  - invokestatic
-b8 0017  - invokestatic
+10 05  - bipush
+b3 0024  - putstatic
+b2 0024  - getstatic
+10 14  - bipush
+b8 001b  - invokestatic
+b8 0020  - invokestatic
 b1     - return
 
 0000  // exceptions table
 0000  // attribute's attribute table
 
-::: Method "fib" :::
+::: Method "printErgebnis" :::
 0009  // access flags
-001a  // name index
-001b  // descriptor index
+001e  // name index
+000f  // descriptor index
 0001  // method's attributes table
 0005  // "Code" index
-00000046  // attribute's length
-0003  // stack size
+0000001d  // attribute's length
+0002  // stack size
 0002  // locals
-00000028  // bytecode size
+00000011  // bytecode size
 
-****Your byte code for "fib" starts here****
+****Your byte code for "printErgebnis" starts here****
 10 00  - bipush
 36 01  - istore
 15 00  - iload
-10 02  - bipush
-a2 000a  - if_icmpge
-15 00  - iload
-36 01  - istore
-a7 0016  - goto
-15 00  - iload
-10 01  - bipush
-64     - isub
-b8 001d  - invokestatic
-15 00  - iload
-10 02  - bipush
-64     - isub
-b8 001d  - invokestatic
+10 0a  - bipush
 60     - iadd
 36 01  - istore
 15 01  - iload
-ac     - ireturn
+b8 0017  - invokestatic
+b1     - return
 
 0000  // exceptions table
-0001  // attribute's attribute table
-0012  // "StackMapTable" index
-0000000c  // attribute size
-0002  // StackMapTable entries
-ff 00 12 00 02 01 01 00 00 12  // attribute values necessary for goto and compare operations
+0000  // attribute's attribute table
 
 
 :::attributes table:::

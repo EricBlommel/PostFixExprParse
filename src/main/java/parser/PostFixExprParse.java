@@ -274,8 +274,7 @@ currentMethod.getCode().push(Integer.parseInt(n.image));
       break;
       }
     case IDENT:{
-      // Linksfaktorisierung: IDENT konsumieren, dann entscheiden
-          ident = jj_consume_token(IDENT);
+      ident = jj_consume_token(IDENT);
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
       case KLAMMERAUF:{
         functionCall(ident);
@@ -344,7 +343,7 @@ if (!methods.containsKey(ident.image)) {
         } else {
              Method m = methods.get(ident.image);
              if (m.getParamCount() != argsCount) {
-                 {if (true) throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber " + argsCount + " gegeben.");}
+                 {if (true) throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber erhielt " + argsCount);}
              }
         }
         currentMethod.getCode().writeCall(ident.image, argsCount);

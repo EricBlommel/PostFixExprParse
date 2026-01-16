@@ -1,7 +1,10 @@
-func add(int a, int b) {
-    return a + b;
+func addiere(int a, int b) {
+    int summe = 0;
+    summe = a + b;
+
+    return summe;
 }
 
 {
-    print(add(1, 2, 3));
+    print(addiere(1,2,3));
 }
