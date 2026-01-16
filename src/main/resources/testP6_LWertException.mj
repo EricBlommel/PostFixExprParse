@@ -1,0 +1,5 @@
+final int CONST = 5;
+
+{
+    CONST = 10;
+}

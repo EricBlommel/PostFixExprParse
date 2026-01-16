@@ -1,0 +1,3 @@
+{
+    print(gibtEsNicht(10));
+}
