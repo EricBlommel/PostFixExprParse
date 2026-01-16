@@ -24,6 +24,7 @@ import java.util.Map;
 
 public class PostFixExprParse {
     private final SymbolTable symbolTable = new SymbolTable();
+    // Methoden-Speicher
     private final Map<String, Method> methods = new HashMap<>();
     private Method currentMethod;
 
@@ -35,9 +36,9 @@ public class PostFixExprParse {
             JavaClassFileGenerator jcfg = new JavaClassFileGenerator("generated/Main", true, true, true);
             List<MethodObject> methodObjects = new ArrayList<>();
 
+            // Bytecode aller Methoden einsammeln
             for (Method m : parser.methods.values()) {
                 String hexCode;
-                // Main braucht spezielles Return am Ende, andere Methoden haben es bereits
                 if (m.getName().equals("main")) {
                     hexCode = m.getCode().finishMain();
                 } else {
@@ -85,16 +86,16 @@ TOKEN: {
 
 void program() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException: {} {
     {
-        // Main-Methode als Container initialisieren und registrieren
+        // Main-Methode initialisieren
         currentMethod = new Method("main", false, symbolTable);
         currentMethod.addParameter("args");
         methods.put("main", currentMethod);
     }
     constDecl()
-    varDecl(false)
+    varDecl(false) // Globale Variablen
     ( procedure() | function() )*
 
-    // Kontext zurück auf Main setzen für den Hauptblock
+    // Kontext zurück auf Main für Hauptblock
     { currentMethod = methods.get("main"); }
     statement()
     <EOF>
@@ -135,17 +136,17 @@ void varZuw(Token ident, boolean isLocal): { Token number; } {
         {
             int val = Integer.parseInt(number.image);
             if (isLocal) {
-                // Lokal: Wert auf Stack pushen und speichern
+                // Lokal: Wert auf Stack und speichern
                 currentMethod.getCode().initLocalVar(currentMethod.getVarIndex(ident.image), val);
             } else {
-                // Global: Initialisierung wird dem Main-Code hinzugefügt
+                // Global: Init-Code in Main
                 currentMethod.getCode().initVar(ident.image, val);
             }
         }
     )
     |
     {
-        // Standard-Initialisierung mit 0
+        // Default-Initialisierung mit 0
         if (isLocal) {
             currentMethod.getCode().initLocalVar(currentMethod.getVarIndex(ident.image), 0);
         } else {
@@ -189,11 +190,9 @@ void term() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedE
     |
     ident=<IDENT>
     (
-        // Entscheidung: Funktionsaufruf (Klammer folgt) vs. Variable
         functionCall(ident)
         |
         {
-            // Variablenzugriff: Erst lokal suchen, dann global
             int localIndex = currentMethod.getVarIndex(ident.image);
             if (localIndex != -1) {
                 currentMethod.getCode().loadLocal(localIndex);
@@ -229,10 +228,10 @@ void functionCall(Token ident) throws LWertException, UnknownSymbolException, Sy
     }
 }
 
-void procCall() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
-    Token ident; int argsCount = 0;
+void procCall(Token ident) throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
+    int argsCount = 0;
 } {
-    ident=<IDENT> <KLAMMERAUF>
+    <KLAMMERAUF>
     ( expression() { argsCount++; } ( <COMMA> expression() { argsCount++; } )* )?
     <KLAMMERZU>
     {
@@ -254,7 +253,6 @@ void procedure() throws LWertException, UnknownSymbolException, SymbolAlreadyDef
 } {
     <VOID> ident=<IDENT>
     {
-        // Neue Methode erstellen und Kontext wechseln
         Method m = new Method(ident.image, false, symbolTable);
         methods.put(ident.image, m);
         currentMethod = m;
@@ -271,7 +269,6 @@ void function() throws LWertException, UnknownSymbolException, SymbolAlreadyDefi
 } {
     <FUNC> ident=<IDENT>
     {
-        // Neue Methode erstellen und Kontext wechseln
         Method m = new Method(ident.image, true, symbolTable);
         methods.put(ident.image, m);
         currentMethod = m;
@@ -294,7 +291,7 @@ void routinenParameter(): { Token ident; } {
 void routinenBlock() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
     constDecl()
     varDecl(true)
-    stmtLIST()
+    statement()
 }
 
 int condition() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
@@ -320,26 +317,27 @@ int condition() throws LWertException, UnknownSymbolException, SymbolAlreadyDefi
 void statement() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {
     Token ident; int falseJump; int loopStart;
 } {
-    // Lookahead notwendig: Unterscheidung Zuweisung vs. Ausdruck
-    LOOKAHEAD(2)
-    ident=<IDENT> <EQUAL> expression() <SEMICOLON>
-    {
-        int localIndex = currentMethod.getVarIndex(ident.image);
-        if (localIndex != -1) {
-            currentMethod.getCode().storeLocal(localIndex);
-        } else if (symbolTable.isVar(ident.image)) {
-            currentMethod.getCode().storeGlobal(ident.image);
-        } else {
-             throw new LWertException("Zuweisung nur an Variablen erlaubt (unbekannt): " + ident.image);
+    ident=<IDENT>
+    (
+        <EQUAL> expression() <SEMICOLON>
+        {
+            int localIndex = currentMethod.getVarIndex(ident.image);
+            if (localIndex != -1) {
+                currentMethod.getCode().storeLocal(localIndex);
+            } else if (symbolTable.isVar(ident.image)) {
+                currentMethod.getCode().storeGlobal(ident.image);
+            } else {
+                 throw new LWertException("Zuweisung nur an Variablen erlaubt (unbekannt): " + ident.image);
+            }
         }
-    }
-    |
-    procCall() <SEMICOLON>
+        |
+        procCall(ident) <SEMICOLON>
+    )
     |
     <PRINT> <KLAMMERAUF> expression() <KLAMMERZU> <SEMICOLON>
     { currentMethod.getCode().print(); }
     |
-    <CURLYAUF> stmtLIST() <CURLYZU>
+    <CURLYAUF> ( statement() )* <CURLYZU>
     |
     <IF> falseJump=condition() statement() optElse(falseJump)
     |
@@ -347,7 +345,6 @@ void statement() throws LWertException, UnknownSymbolException, SymbolAlreadyDef
     falseJump=condition() statement()
     {
         int back = currentMethod.getCode().ifFalse_goto();
-        // Sprungziele patchen: Zurück zur Schleife und Ausstieg
         currentMethod.getCode().patchJumpPlaceholder(back, loopStart);
         currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
     }
@@ -372,6 +369,3 @@ void optElse(int falseJump) throws LWertException, UnknownSymbolException, Symbo
     }
 }
 
-void stmtLIST() throws LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException: {} {
-  ( statement() stmtLIST() )?
-}

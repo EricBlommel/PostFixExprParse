@@ -20,6 +20,7 @@ import java.util.Map;
 
 public class PostFixExprParse implements PostFixExprParseConstants {
     private final SymbolTable symbolTable = new SymbolTable();
+    // Methoden-Speicher
     private final Map<String, Method> methods = new HashMap<>();
     private Method currentMethod;
 
@@ -31,9 +32,9 @@ public class PostFixExprParse implements PostFixExprParseConstants {
             JavaClassFileGenerator jcfg = new JavaClassFileGenerator("generated/Main", true, true, true);
             List<MethodObject> methodObjects = new ArrayList<>();
 
+            // Bytecode aller Methoden einsammeln
             for (Method m : parser.methods.values()) {
                 String hexCode;
-                // Main braucht spezielles Return am Ende, andere Methoden haben es bereits
                 if (m.getName().equals("main")) {
                     hexCode = m.getCode().finishMain();
                 } else {
@@ -52,7 +53,7 @@ public class PostFixExprParse implements PostFixExprParseConstants {
     }
 
   final public void program() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException {
-// Main-Methode als Container initialisieren und registrieren
+// Main-Methode initialisieren
         currentMethod = new Method("main", false, symbolTable);
         currentMethod.addParameter("args");
         methods.put("main", currentMethod);
@@ -155,17 +156,17 @@ if (isLocal) {
       number = jj_consume_token(NUMBER);
 int val = Integer.parseInt(number.image);
             if (isLocal) {
-                // Lokal: Wert auf Stack pushen und speichern
+                // Lokal: Wert auf Stack und speichern
                 currentMethod.getCode().initLocalVar(currentMethod.getVarIndex(ident.image), val);
             } else {
-                // Global: Initialisierung wird dem Main-Code hinzugefügt
+                // Global: Init-Code in Main
                 currentMethod.getCode().initVar(ident.image, val);
             }
       break;
       }
     default:
       jj_la1[5] = jj_gen;
-// Standard-Initialisierung mit 0
+// Default-Initialisierung mit 0
         if (isLocal) {
             currentMethod.getCode().initLocalVar(currentMethod.getVarIndex(ident.image), 0);
         } else {
@@ -273,7 +274,8 @@ currentMethod.getCode().push(Integer.parseInt(n.image));
       break;
       }
     case IDENT:{
-      ident = jj_consume_token(IDENT);
+      // Linksfaktorisierung: IDENT konsumieren, dann entscheiden
+          ident = jj_consume_token(IDENT);
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
       case KLAMMERAUF:{
         functionCall(ident);
@@ -281,8 +283,7 @@ currentMethod.getCode().push(Integer.parseInt(n.image));
         }
       default:
         jj_la1[11] = jj_gen;
-// Variablenzugriff: Erst lokal suchen, dann global
-            int localIndex = currentMethod.getVarIndex(ident.image);
+int localIndex = currentMethod.getVarIndex(ident.image);
             if (localIndex != -1) {
                 currentMethod.getCode().loadLocal(localIndex);
             } else if (symbolTable.isConst(ident.image)) {
@@ -349,8 +350,7 @@ if (!methods.containsKey(ident.image)) {
         currentMethod.getCode().writeCall(ident.image, argsCount);
 }
 
-  final public void procCall() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {Token ident; int argsCount = 0;
-    ident = jj_consume_token(IDENT);
+  final public void procCall(Token ident) throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {int argsCount = 0;
     jj_consume_token(KLAMMERAUF);
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case KLAMMERAUF:
@@ -395,8 +395,7 @@ if (!methods.containsKey(ident.image)) {
   final public void procedure() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {Token ident;
     jj_consume_token(VOID);
     ident = jj_consume_token(IDENT);
-// Neue Methode erstellen und Kontext wechseln
-        Method m = new Method(ident.image, false, symbolTable);
+Method m = new Method(ident.image, false, symbolTable);
         methods.put(ident.image, m);
         currentMethod = m;
     jj_consume_token(KLAMMERAUF);
@@ -411,8 +410,7 @@ currentMethod.getCode().returnVoid();
   final public void function() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {Token ident;
     jj_consume_token(FUNC);
     ident = jj_consume_token(IDENT);
-// Neue Methode erstellen und Kontext wechseln
-        Method m = new Method(ident.image, true, symbolTable);
+Method m = new Method(ident.image, true, symbolTable);
         methods.put(ident.image, m);
         currentMethod = m;
     jj_consume_token(KLAMMERAUF);
@@ -460,7 +458,7 @@ currentMethod.addParameter(ident.image);
   final public void routinenBlock() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {
     constDecl();
     varDecl(true);
-    stmtLIST();
+    statement();
 }
 
   final public int condition() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {Token op; int jumpPlaceholder;
@@ -510,57 +508,27 @@ switch (op.kind) {
 }
 
   final public void statement() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {Token ident; int falseJump; int loopStart;
-    if (jj_2_1(2)) {
+    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+    case IDENT:{
       ident = jj_consume_token(IDENT);
-      jj_consume_token(EQUAL);
-      expression();
-      jj_consume_token(SEMICOLON);
-int localIndex = currentMethod.getVarIndex(ident.image);
-        if (localIndex != -1) {
-            currentMethod.getCode().storeLocal(localIndex);
-        } else if (symbolTable.isVar(ident.image)) {
-            currentMethod.getCode().storeGlobal(ident.image);
-        } else {
-             {if (true) throw new LWertException("Zuweisung nur an Variablen erlaubt (unbekannt): " + ident.image);}
-        }
-    } else {
       switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-      case IDENT:{
-        procCall();
-        jj_consume_token(SEMICOLON);
-        break;
-        }
-      case PRINT:{
-        jj_consume_token(PRINT);
-        jj_consume_token(KLAMMERAUF);
+      case EQUAL:{
+        jj_consume_token(EQUAL);
         expression();
-        jj_consume_token(KLAMMERZU);
         jj_consume_token(SEMICOLON);
-currentMethod.getCode().print();
+int localIndex = currentMethod.getVarIndex(ident.image);
+            if (localIndex != -1) {
+                currentMethod.getCode().storeLocal(localIndex);
+            } else if (symbolTable.isVar(ident.image)) {
+                currentMethod.getCode().storeGlobal(ident.image);
+            } else {
+                 {if (true) throw new LWertException("Zuweisung nur an Variablen erlaubt (unbekannt): " + ident.image);}
+            }
         break;
         }
-      case CURLYAUF:{
-        jj_consume_token(CURLYAUF);
-        stmtLIST();
-        jj_consume_token(CURLYZU);
-        break;
-        }
-      case IF:{
-        jj_consume_token(IF);
-        falseJump = condition();
-        statement();
-        optElse(falseJump);
-        break;
-        }
-      case WHILE:{
-        jj_consume_token(WHILE);
-loopStart = currentMethod.getCode().pc();
-        falseJump = condition();
-        statement();
-int back = currentMethod.getCode().ifFalse_goto();
-        // Sprungziele patchen: Zurück zur Schleife und Ausstieg
-        currentMethod.getCode().patchJumpPlaceholder(back, loopStart);
-        currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
+      case KLAMMERAUF:{
+        procCall(ident);
+        jj_consume_token(SEMICOLON);
         break;
         }
       default:
@@ -568,6 +536,60 @@ int back = currentMethod.getCode().ifFalse_goto();
         jj_consume_token(-1);
         throw new ParseException();
       }
+      break;
+      }
+    case PRINT:{
+      jj_consume_token(PRINT);
+      jj_consume_token(KLAMMERAUF);
+      expression();
+      jj_consume_token(KLAMMERZU);
+      jj_consume_token(SEMICOLON);
+currentMethod.getCode().print();
+      break;
+      }
+    case CURLYAUF:{
+      jj_consume_token(CURLYAUF);
+      label_7:
+      while (true) {
+        switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+        case PRINT:
+        case IF:
+        case WHILE:
+        case CURLYAUF:
+        case IDENT:{
+          ;
+          break;
+          }
+        default:
+          jj_la1[21] = jj_gen;
+          break label_7;
+        }
+        statement();
+      }
+      jj_consume_token(CURLYZU);
+      break;
+      }
+    case IF:{
+      jj_consume_token(IF);
+      falseJump = condition();
+      statement();
+      optElse(falseJump);
+      break;
+      }
+    case WHILE:{
+      jj_consume_token(WHILE);
+loopStart = currentMethod.getCode().pc();
+      falseJump = condition();
+      statement();
+int back = currentMethod.getCode().ifFalse_goto();
+        currentMethod.getCode().patchJumpPlaceholder(back, loopStart);
+        currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
+      break;
+      }
+    default:
+      jj_la1[22] = jj_gen;
+      jj_consume_token(-1);
+      throw new ParseException();
     }
 }
 
@@ -583,45 +605,13 @@ currentMethod.getCode().patchJumpPlaceholder(endJump, currentMethod.getCode().pc
       break;
       }
     default:
-      jj_la1[21] = jj_gen;
+      jj_la1[23] = jj_gen;
       ;
     }
 if (!hasElse) {
             currentMethod.getCode().patchJumpPlaceholder(falseJump, currentMethod.getCode().pc());
         }
 }
-
-  final public void stmtLIST() throws ParseException, LWertException, UnknownSymbolException, SymbolAlreadyDefinedException, RWertException, WrongParametersException {
-    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-    case PRINT:
-    case IF:
-    case WHILE:
-    case CURLYAUF:
-    case IDENT:{
-      statement();
-      stmtLIST();
-      break;
-      }
-    default:
-      jj_la1[22] = jj_gen;
-      ;
-    }
-}
-
-  private boolean jj_2_1(int xla)
- {
-    jj_la = xla; jj_lastpos = jj_scanpos = token;
-    try { return (!jj_3_1()); }
-    catch(LookaheadSuccess ls) { return true; }
-    finally { jj_save(0, xla); }
-  }
-
-  private boolean jj_3_1()
- {
-    if (jj_scan_token(IDENT)) return true;
-    if (jj_scan_token(EQUAL)) return true;
-    return false;
-  }
 
   /** Generated Token Manager. */
   public PostFixExprParseTokenManager token_source;
@@ -631,10 +621,8 @@ if (!hasElse) {
   /** Next token. */
   public Token jj_nt;
   private int jj_ntk;
-  private Token jj_scanpos, jj_lastpos;
-  private int jj_la;
   private int jj_gen;
-  final private int[] jj_la1 = new int[23];
+  final private int[] jj_la1 = new int[24];
   static private int[] jj_la1_0;
   static private int[] jj_la1_1;
   static {
@@ -642,14 +630,11 @@ if (!hasElse) {
 	   jj_la1_init_1();
 	}
 	private static void jj_la1_init_0() {
-	   jj_la1_0 = new int[] {0x1800,0x1800,0x40,0x80000,0x20,0x40000,0x80000,0x18000000,0x18000000,0x60000000,0x60000000,0x4000,0x80004000,0x80000,0x80004000,0x80000,0x80004000,0x80000,0x20,0x7e00000,0x80010580,0x200,0x80010580,};
+	   jj_la1_0 = new int[] {0x1800,0x1800,0x40,0x80000,0x20,0x40000,0x80000,0x18000000,0x18000000,0x60000000,0x60000000,0x4000,0x80004000,0x80000,0x80004000,0x80000,0x80004000,0x80000,0x20,0x7e00000,0x44000,0x80010580,0x80010580,0x200,};
 	}
 	private static void jj_la1_init_1() {
-	   jj_la1_1 = new int[] {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x1,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x0,};
+	   jj_la1_1 = new int[] {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x1,0x0,0x1,0x0,0x1,0x0,0x0,0x0,0x0,0x0,0x0,0x0,};
 	}
-  final private JJCalls[] jj_2_rtns = new JJCalls[1];
-  private boolean jj_rescan = false;
-  private int jj_gc = 0;
 
   /** Constructor with InputStream. */
   public PostFixExprParse(java.io.InputStream stream) {
@@ -662,8 +647,7 @@ if (!hasElse) {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
-	 for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
+	 for (int i = 0; i < 24; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -677,8 +661,7 @@ if (!hasElse) {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
-	 for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
+	 for (int i = 0; i < 24; i++) jj_la1[i] = -1;
   }
 
   /** Constructor. */
@@ -688,8 +671,7 @@ if (!hasElse) {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
-	 for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
+	 for (int i = 0; i < 24; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -707,8 +689,7 @@ if (!hasElse) {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
-	 for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
+	 for (int i = 0; i < 24; i++) jj_la1[i] = -1;
   }
 
   /** Constructor with generated Token Manager. */
@@ -717,8 +698,7 @@ if (!hasElse) {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
-	 for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
+	 for (int i = 0; i < 24; i++) jj_la1[i] = -1;
   }
 
   /** Reinitialise. */
@@ -727,8 +707,7 @@ if (!hasElse) {
 	 token = new Token();
 	 jj_ntk = -1;
 	 jj_gen = 0;
-	 for (int i = 0; i < 23; i++) jj_la1[i] = -1;
-	 for (int i = 0; i < jj_2_rtns.length; i++) jj_2_rtns[i] = new JJCalls();
+	 for (int i = 0; i < 24; i++) jj_la1[i] = -1;
   }
 
   private Token jj_consume_token(int kind) throws ParseException {
@@ -738,50 +717,11 @@ if (!hasElse) {
 	 jj_ntk = -1;
 	 if (token.kind == kind) {
 	   jj_gen++;
-	   if (++jj_gc > 100) {
-		 jj_gc = 0;
-		 for (int i = 0; i < jj_2_rtns.length; i++) {
-		   JJCalls c = jj_2_rtns[i];
-		   while (c != null) {
-			 if (c.gen < jj_gen) c.first = null;
-			 c = c.next;
-		   }
-		 }
-	   }
 	   return token;
 	 }
 	 token = oldToken;
 	 jj_kind = kind;
 	 throw generateParseException();
-  }
-
-  @SuppressWarnings("serial")
-  static private final class LookaheadSuccess extends java.lang.Error {
-    @Override
-    public Throwable fillInStackTrace() {
-      return this;
-    }
-  }
-  static private final LookaheadSuccess jj_ls = new LookaheadSuccess();
-  private boolean jj_scan_token(int kind) {
-	 if (jj_scanpos == jj_lastpos) {
-	   jj_la--;
-	   if (jj_scanpos.next == null) {
-		 jj_lastpos = jj_scanpos = jj_scanpos.next = token_source.getNextToken();
-	   } else {
-		 jj_lastpos = jj_scanpos = jj_scanpos.next;
-	   }
-	 } else {
-	   jj_scanpos = jj_scanpos.next;
-	 }
-	 if (jj_rescan) {
-	   int i = 0; Token tok = token;
-	   while (tok != null && tok != jj_scanpos) { i++; tok = tok.next; }
-	   if (tok != null) jj_add_error_token(kind, i);
-	 }
-	 if (jj_scanpos.kind != kind) return true;
-	 if (jj_la == 0 && jj_scanpos == jj_lastpos) throw jj_ls;
-	 return false;
   }
 
 
@@ -814,46 +754,6 @@ if (!hasElse) {
   private java.util.List<int[]> jj_expentries = new java.util.ArrayList<int[]>();
   private int[] jj_expentry;
   private int jj_kind = -1;
-  private int[] jj_lasttokens = new int[100];
-  private int jj_endpos;
-
-  private void jj_add_error_token(int kind, int pos) {
-	 if (pos >= 100) {
-		return;
-	 }
-
-	 if (pos == jj_endpos + 1) {
-	   jj_lasttokens[jj_endpos++] = kind;
-	 } else if (jj_endpos != 0) {
-	   jj_expentry = new int[jj_endpos];
-
-	   for (int i = 0; i < jj_endpos; i++) {
-		 jj_expentry[i] = jj_lasttokens[i];
-	   }
-
-	   for (int[] oldentry : jj_expentries) {
-		 if (oldentry.length == jj_expentry.length) {
-		   boolean isMatched = true;
-
-		   for (int i = 0; i < jj_expentry.length; i++) {
-			 if (oldentry[i] != jj_expentry[i]) {
-			   isMatched = false;
-			   break;
-			 }
-
-		   }
-		   if (isMatched) {
-			 jj_expentries.add(jj_expentry);
-			 break;
-		   }
-		 }
-	   }
-
-	   if (pos != 0) {
-		 jj_lasttokens[(jj_endpos = pos) - 1] = kind;
-	   }
-	 }
-  }
 
   /** Generate ParseException. */
   public ParseException generateParseException() {
@@ -863,7 +763,7 @@ if (!hasElse) {
 	   la1tokens[jj_kind] = true;
 	   jj_kind = -1;
 	 }
-	 for (int i = 0; i < 23; i++) {
+	 for (int i = 0; i < 24; i++) {
 	   if (jj_la1[i] == jj_gen) {
 		 for (int j = 0; j < 32; j++) {
 		   if ((jj_la1_0[i] & (1<<j)) != 0) {
@@ -882,9 +782,6 @@ if (!hasElse) {
 		 jj_expentries.add(jj_expentry);
 	   }
 	 }
-	 jj_endpos = 0;
-	 jj_rescan_token();
-	 jj_add_error_token(0, 0);
 	 int[][] exptokseq = new int[jj_expentries.size()][];
 	 for (int i = 0; i < jj_expentries.size(); i++) {
 	   exptokseq[i] = jj_expentries.get(i);
@@ -905,46 +802,6 @@ if (!hasElse) {
 
   /** Disable tracing. */
   final public void disable_tracing() {
-  }
-
-  private void jj_rescan_token() {
-	 jj_rescan = true;
-	 for (int i = 0; i < 1; i++) {
-	   try {
-		 JJCalls p = jj_2_rtns[i];
-
-		 do {
-		   if (p.gen > jj_gen) {
-			 jj_la = p.arg; jj_lastpos = jj_scanpos = p.first;
-			 switch (i) {
-			   case 0: jj_3_1(); break;
-			 }
-		   }
-		   p = p.next;
-		 } while (p != null);
-
-		 } catch(LookaheadSuccess ls) { }
-	 }
-	 jj_rescan = false;
-  }
-
-  private void jj_save(int index, int xla) {
-	 JJCalls p = jj_2_rtns[index];
-	 while (p.gen > jj_gen) {
-	   if (p.next == null) { p = p.next = new JJCalls(); break; }
-	   p = p.next;
-	 }
-
-	 p.gen = jj_gen + xla - jj_la; 
-	 p.first = token;
-	 p.arg = xla;
-  }
-
-  static final class JJCalls {
-	 int gen;
-	 Token first;
-	 int arg;
-	 JJCalls next;
   }
 
 }

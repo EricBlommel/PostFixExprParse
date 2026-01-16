@@ -26,9 +26,17 @@ public class SymbolTable {
         vars.put(ident, nextSlot++);
     }
 
-    public int constValue(String n) { return consts.get(n); }
-    public boolean isConst(String n) { return consts.containsKey(n); }
-    public boolean isVar(String n) { return vars.containsKey(n); }
+    public int constValue(String n) {
+        return consts.get(n);
+    }
+
+    public boolean isConst(String n) {
+        return consts.containsKey(n);
+    }
+
+    public boolean isVar(String n) {
+        return vars.containsKey(n);
+    }
 
     public Integer getSymbol(String ident) throws UnknownSymbolException {
         if (consts.containsKey(ident)) {

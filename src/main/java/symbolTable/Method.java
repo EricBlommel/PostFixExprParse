@@ -41,7 +41,7 @@ public class Method {
 
     public int getVarIndex(String varName) {
         if (!localVars.containsKey(varName)) {
-            return -1; // Nicht lokal gefunden -> Aufrufer muss global suchen
+            return -1; // Nicht lokal gefunden -> global suchen
         }
         return localVars.get(varName);
     }
