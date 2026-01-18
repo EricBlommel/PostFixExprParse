@@ -290,7 +290,7 @@ int localIndex = currentMethod.getVarIndex(ident.image);
             } else if (symbolTable.isVar(ident.image)) {
                 currentMethod.getCode().loadGlobal(ident.image);
             } else {
-                {if (true) throw new RWertException("Bezeichner unbekannt oder keine Variable/Konstante: " + ident.image);}
+                {if (true) throw new UnknownSymbolException();}
             }
       }
       break;
@@ -345,7 +345,12 @@ if (!methods.containsKey(ident.image)) {
              if (m.getParamCount() != argsCount) {
                  {if (true) throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber erhielt " + argsCount);}
              }
+
+             if (!m.isFunction()) {
+                 {if (true) throw new RWertException("Funktion erwartet");}
+             }
         }
+
         currentMethod.getCode().writeCall(ident.image, argsCount);
 }
 
@@ -385,7 +390,7 @@ if (!methods.containsKey(ident.image)) {
 
         Method m = methods.get(ident.image);
         if (m.getParamCount() != argsCount) {
-             {if (true) throw new WrongParametersException("Prozedur " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber " + argsCount + " gegeben.");}
+                 {if (true) throw new WrongParametersException("Funktion " + ident.image + " erwartet " + m.getParamCount() + " Parameter, aber erhielt " + argsCount);}
         }
 
         currentMethod.getCode().writeCall(ident.image, argsCount);
